@@ -15,16 +15,13 @@ public class PublicController {
 
     private final LoanWorkflowService service;
 
-    @GetMapping("/")
-    public String index() {
+
+    @GetMapping("/public-apply")
+    public String applyGet() {
         return "index";
     }
 
-    // GET /apply -> hiển thị lại form
-    @GetMapping("/apply")
-    public String applyGet() { return "index"; }
-
-    @PostMapping("/apply")
+    @PostMapping("/public-apply")
     public String apply(
             @RequestParam("fullName") String fullName,
             @RequestParam("email") String email,
@@ -42,7 +39,7 @@ public class PublicController {
         return "submit_success";
     }
 
-    @GetMapping("/status/{id}")
+    @GetMapping("/public-status/{id}")
     public String status(@PathVariable("id") Long id, Model model) {
         Optional<LoanApplication> app = service.get(id);
         model.addAttribute("app", app.orElse(null));

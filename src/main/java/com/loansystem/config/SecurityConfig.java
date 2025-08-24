@@ -57,15 +57,15 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Chain cho customer routes
+    // Chain cho customer routes - BỎ "/" để tránh xung đột
     @Bean
     @Order(2)
     public SecurityFilterChain customerChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/", "/apply", "/my-applications", "/status/**", "/customer/**")
+                .securityMatcher("/apply", "/my-applications", "/status/**", "/customer/**")
                 .authorizeHttpRequests(a -> a
-                        // Trang chủ và apply cần đăng nhập
-                        .requestMatchers("/", "/apply").hasAnyRole("CUSTOMER", "ADMIN")
+                        // Apply cần đăng nhập
+                        .requestMatchers("/apply").hasAnyRole("CUSTOMER", "ADMIN")
 
                         // Xem hồ sơ cá nhân
                         .requestMatchers("/my-applications", "/customer/**").hasRole("CUSTOMER")
@@ -87,12 +87,35 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Chain cho static resources và login
+    // Chain đặc biệt cho route "/" - redirect dựa trên role
     @Bean
     @Order(3)
+    public SecurityFilterChain homeChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/")
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers("/").hasAnyRole("CUSTOMER", "ADMIN")
+                        .anyRequest().authenticated())
+                .formLogin(fl -> fl
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/", true)
+                        .permitAll())
+                .logout(lo -> lo
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll())
+                .csrf(c -> c.disable());
+        return http.build();
+    }
+
+    // Chain cho static resources và public routes
+    @Bean
+    @Order(4)
     public SecurityFilterChain publicChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/css/**", "/js/**", "/images/**", "/favicon.ico")
+                .securityMatcher("/css/**", "/js/**", "/images/**", "/favicon.ico",
+                        "/public-apply", "/public-status/**")
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll())
                 .csrf(c -> c.disable());
         return http.build();
