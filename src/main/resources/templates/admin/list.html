@@ -1,0 +1,33 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"/><title>Quản trị hồ sơ vay</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<div class="container">
+  <h1>Quản trị hồ sơ vay</h1>
+  <p>Đăng nhập Basic: <code>officer/officer123</code> hoặc <code>admin/admin123</code></p>
+  <table>
+    <thead><tr><th>ID</th><th>Khách hàng</th><th>Số tiền</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+    <tbody>
+    <tr th:each="a : ${apps}">
+      <td th:text="${a.id}"></td>
+      <td th:text="${a.customer.fullName}"></td>
+      <td th:text="${#numbers.formatInteger(a.amount,3,'POINT')}"></td>
+      <td th:text="${a.termMonths}"></td>
+      <td><span class="badge" th:text="${a.status}"></span></td>
+      <td class="actions">
+        <form th:action="@{'/admin/' + ${a.id} + '/review'}" method="post"><button>Tiếp nhận</button></form>
+        <form th:action="@{'/admin/' + ${a.id} + '/assess'}" method="post">
+          <input type="hidden" name="approve" value="true"/><input name="note" placeholder="Ghi chú thẩm định"/><button>Phê duyệt</button>
+        </form>
+        <form th:action="@{'/admin/' + ${a.id} + '/assess'}" method="post">
+          <input type="hidden" name="approve" value="false"/><input name="note" placeholder="Lý do từ chối"/><button>Từ chối</button>
+        </form>
+        <form th:action="@{'/admin/' + ${a.id} + '/disburse'}" method="post"><button>Giải ngân</button></form>
+        <a class="link" th:href="@{'/status/' + ${a.id}}">Xem</a>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

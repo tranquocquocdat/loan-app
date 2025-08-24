@@ -1,0 +1,24 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"/><title>Trạng thái hồ sơ</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<div class="container" th:if="${app} != null">
+  <h1>Hồ sơ #<span th:text="${app.id}"></span></h1>
+  <p>Khách hàng: <span th:text="${app.customer.fullName}"></span></p>
+  <p>Trạng thái: <span class="badge" th:text="${app.status}"></span></p>
+  <ul>
+    <li>Nộp: <span th:text="${#temporals.format(app.submittedAt, 'dd/MM/yyyy HH:mm')}"></span></li>
+    <li th:if="${app.reviewedAt}">Tiếp nhận: <span th:text="${#temporals.format(app.reviewedAt, 'dd/MM/yyyy HH:mm')}"></span></li>
+    <li th:if="${app.assessedAt}">Thẩm định: <span th:text="${#temporals.format(app.assessedAt, 'dd/MM/yyyy HH:mm')}"></span></li>
+    <li th:if="${app.disbursedAt}">Giải ngân: <span th:text="${#temporals.format(app.disbursedAt, 'dd/MM/yyyy HH:mm')}"></span></li>
+  </ul>
+  <div th:if="${app.rejectionReason}"><h3>Lý do từ chối</h3><p th:text="${app.rejectionReason}"></p></div>
+  <div th:if="${app.assessmentNote}"><h3>Ghi chú thẩm định</h3><p th:text="${app.assessmentNote}"></p></div>
+  <p><a class="link" href="/">Trang chủ</a></p>
+</div>
+<div class="container" th:if="${app} == null">
+  <h1>Không tìm thấy hồ sơ</h1>
+  <p>Vui lòng kiểm tra lại mã.</p>
+</div>
+</body>
+</html>

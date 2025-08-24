@@ -1,0 +1,23 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"/><title>Loan Application</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<div class="container">
+  <h1>Đăng ký vay tín dụng</h1>
+  <form method="post" action="/apply">
+    <h2>Thông tin khách hàng</h2>
+    <label>Họ tên</label><input name="fullName" required />
+    <label>Email</label><input name="email" type="email" />
+    <label>Điện thoại</label><input name="phone" required />
+
+    <h2>Thông tin khoản vay</h2>
+    <label>Số tiền (VND)</label><input name="amount" type="number" step="100000" value="20000000" required />
+    <label>Kỳ hạn (tháng)</label>
+    <select name="termMonths"><option>6</option><option>12</option><option>24</option><option>36</option><option>48</option><option>60</option></select>
+    <label>Mục đích vay</label><textarea name="purpose"></textarea>
+    <label>Thu nhập hàng tháng (VND)</label><input name="monthlyIncome" type="number" step="100000" value="10000000" required />
+    <p><button type="submit">Nộp hồ sơ</button></p>
+  </form>
+</div>
+</body>
+</html>
