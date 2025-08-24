@@ -2,37 +2,31 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8"/>
-  <title>Quản trị hồ sơ vay</title>
+  <title>Quản trị hồ sơ</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="container">
-  <h1>Quản trị hồ sơ</h1>
+  <h1>Quản trị hồ sơ (3 phòng)</h1>
 
   <nav class="tabs">
-    <a class="tab" th:classappend="${section=='pending'} ? ' active'"  href="/admin/pending">Chờ xử lý</a>
-    <a class="tab" th:classappend="${section=='approved'} ? ' active'" href="/admin/approved">Đã duyệt</a>
-    <a class="tab" th:classappend="${section=='rejected'} ? ' active'" href="/admin/rejected">Bị từ chối</a>
-    <a class="tab" th:classappend="${section=='archived'} ? ' active'" href="/admin/archived">Lưu trữ</a>
+    <a class="tab" th:classappend="${section=='intake'} ? ' active'" href="/admin/intake">Phòng tiếp nhận</a>
+    <a class="tab" th:classappend="${section=='assessment'} ? ' active'" href="/admin/assessment">Phòng thẩm định</a>
+    <a class="tab" th:classappend="${section=='disbursement'} ? ' active'" href="/admin/disbursement">Phòng giải ngân</a>
   </nav>
+
+  <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+  <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
 
   <table>
     <thead>
     <tr>
-      <th>ID</th>
-      <th>KH</th>
-      <th>Số tiền</th>
-      <th>Kỳ hạn</th>
-      <th>Trạng thái</th>
-      <th th:if="${section=='rejected' || section=='archived'}">Lý do</th>
-      <th>Hành động</th>
+      <th>ID</th><th>KH</th><th>Số tiền</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Hành động</th>
     </tr>
     </thead>
     <tbody>
     <tr th:if="${#lists.isEmpty(apps)}">
-      <td colspan="7" style="text-align:center;opacity:.7;padding:24px">
-        Chưa có hồ sơ trong mục này.
-      </td>
+      <td colspan="6" style="text-align:center;opacity:.7;padding:24px">Không có hồ sơ trong mục này.</td>
     </tr>
 
     <tr th:each="a : ${apps}">
@@ -41,57 +35,10 @@
       <td th:text="${#numbers.formatInteger(a.amount,3,'POINT')}"></td>
       <td th:text="${a.termMonths}"></td>
       <td><span class="badge" th:text="${a.status}"></span></td>
-      <td th:if="${section=='rejected' || section=='archived'}"
-          th:text="${a.rejectionReason != null ? a.rejectionReason : '—'}"></td>
-
       <td class="actions">
-        <!-- Tab CHỜ XỬ LÝ: cho phép thao tác theo trạng thái -->
-        <div th:if="${section=='pending'}">
-          <!-- B1: Tiếp nhận -->
-          <form th:if="${a.status.name() == 'SUBMITTED'}"
-                th:action="@{'/admin/' + ${a.id} + '/review'}" method="post">
-            <button class="btn btn-primary">Tiếp nhận</button>
-          </form>
-
-          <!-- B2: Thẩm định -->
-          <form th:if="${a.status.name() == 'UNDER_REVIEW' or a.status.name() == 'SUBMITTED'}"
-                th:action="@{'/admin/' + ${a.id} + '/assessment'}" method="post">
-            <input class="input" name="note" placeholder="Ghi chú thẩm định"/>
-            <button class="btn">Hoàn tất thẩm định</button>
-          </form>
-
-          <!-- B3: Phê duyệt / Từ chối -->
-          <form th:if="${a.status.name() == 'ASSESSED'}"
-                th:action="@{'/admin/' + ${a.id} + '/approve'}" method="post">
-            <input class="input" name="note" placeholder="Ghi chú phê duyệt"/>
-            <button class="btn btn-success">Phê duyệt</button>
-          </form>
-          <form th:if="${a.status.name() == 'ASSESSED' or a.status.name() == 'UNDER_REVIEW'}"
-                th:action="@{'/admin/' + ${a.id} + '/reject'}" method="post">
-            <input class="input" name="reason" placeholder="Lý do từ chối" required/>
-            <button class="btn btn-danger">Từ chối</button>
-          </form>
-        </div>
-
-        <!-- Tab ĐÃ DUYỆT: giải ngân + hợp đồng -->
-        <div th:if="${section=='approved'}">
-          <form th:if="${a.status.name() == 'APPROVED'}"
-                th:action="@{'/admin/' + ${a.id} + '/disburse'}" method="post">
-            <button class="btn btn-warning">Giải ngân</button>
-          </form>
-          <a class="btn btn-outline"
-             th:if="${a.status.name() == 'APPROVED' or a.status.name() == 'DISBURSED'}"
-             th:href="@{'/admin/' + ${a.id} + '/contract'}">Hợp đồng</a>
-          <a class="link" th:href="@{'/status/' + ${a.id}}">Xem</a>
-        </div>
-
-        <!-- Tab BỊ TỪ CHỐI / LƯU TRỮ: đọc-only -->
-        <div th:if="${section=='rejected' || section=='archived'}">
-          <a class="link" th:href="@{'/status/' + ${a.id}}">Xem</a>
-          <a class="btn btn-outline"
-             th:if="${a.status.name() == 'APPROVED' or a.status.name() == 'DISBURSED'}"
-             th:href="@{'/admin/' + ${a.id} + '/contract'}">Hợp đồng</a>
-        </div>
+        <!-- Nút Chi tiết theo phòng hiện tại -->
+        <a class="btn btn-outline"
+           th:href="@{'/admin/' + ${section} + '/app/' + ${a.id}}">Chi tiết</a>
       </td>
     </tr>
     </tbody>
