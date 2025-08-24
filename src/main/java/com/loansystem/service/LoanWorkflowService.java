@@ -7,6 +7,7 @@ import com.loansystem.repository.CustomerRepository;
 import com.loansystem.repository.LoanApplicationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,43 +22,36 @@ public class LoanWorkflowService {
     private final LoanApplicationRepository loanRepo;
 
     @Transactional
-    public LoanApplication submitApplication(
-            String fullName,
-            String email,
-            String phone,
-            BigDecimal amount,
-            int termMonths,
-            String purpose,
-            BigDecimal monthlyIncome) {
+    public LoanApplication submitApplication(String fullName, String email, String phone,
+                                             BigDecimal amount, int termMonths, String purpose, BigDecimal monthlyIncome) {
 
-        Customer c = Customer.builder().fullName(fullName).email(email).phone(phone).build();
+        var c = Customer.builder().fullName(fullName).email(email).phone(phone).build();
         customerRepo.save(c);
 
-        LoanApplication app =
-                LoanApplication.builder()
-                        .customer(c)
-                        .amount(amount)
-                        .termMonths(termMonths)
-                        .purpose(purpose)
-                        .monthlyIncome(monthlyIncome)
-                        .status(LoanStatus.SUBMITTED)
-                        .submittedAt(LocalDateTime.now())
-                        .build();
+        var app = LoanApplication.builder()
+                .customer(c)
+                .amount(amount)
+                .termMonths(termMonths)
+                .purpose(purpose)
+                .monthlyIncome(monthlyIncome)
+                .status(LoanStatus.SUBMITTED)
+                .submittedAt(LocalDateTime.now())
+                .build();
 
         return loanRepo.save(app);
     }
 
-    public List<LoanApplication> listAll() {
-        return loanRepo.findAll();
+    public List<LoanApplication> listAll() { return loanRepo.findAll(); }
+    public List<LoanApplication> listByStatus(LoanStatus status) { return loanRepo.findByStatus(status); }
+    public List<LoanApplication> listByStatuses(LoanStatus... statuses) {
+        return loanRepo.findByStatusIn(Arrays.asList(statuses));
     }
 
-    public Optional<LoanApplication> get(Long id) {
-        return loanRepo.findById(id);
-    }
+    public Optional<LoanApplication> get(Long id) { return loanRepo.findById(id); }
 
     @Transactional
     public LoanApplication moveToReview(Long id) {
-        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        var a = loanRepo.findById(id).orElseThrow();
         a.setStatus(LoanStatus.UNDER_REVIEW);
         a.setReviewedAt(LocalDateTime.now());
         return a;
@@ -65,7 +59,7 @@ public class LoanWorkflowService {
 
     @Transactional
     public LoanApplication completeAssessment(Long id, String note) {
-        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        var a = loanRepo.findById(id).orElseThrow();
         if (a.getStatus() != LoanStatus.UNDER_REVIEW && a.getStatus() != LoanStatus.SUBMITTED) {
             throw new IllegalStateException("Chỉ thẩm định khi đã tiếp nhận.");
         }
@@ -77,7 +71,7 @@ public class LoanWorkflowService {
 
     @Transactional
     public LoanApplication approve(Long id, String note) {
-        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        var a = loanRepo.findById(id).orElseThrow();
         if (a.getStatus() != LoanStatus.ASSESSED) {
             throw new IllegalStateException("Chỉ phê duyệt sau khi thẩm định.");
         }
@@ -89,7 +83,7 @@ public class LoanWorkflowService {
 
     @Transactional
     public LoanApplication reject(Long id, String reason) {
-        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        var a = loanRepo.findById(id).orElseThrow();
         if (a.getStatus() != LoanStatus.ASSESSED && a.getStatus() != LoanStatus.UNDER_REVIEW) {
             throw new IllegalStateException("Chỉ từ chối sau khi tiếp nhận/thẩm định.");
         }
@@ -101,7 +95,7 @@ public class LoanWorkflowService {
 
     @Transactional
     public LoanApplication disburse(Long id) {
-        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        var a = loanRepo.findById(id).orElseThrow();
         if (a.getStatus() != LoanStatus.APPROVED) {
             throw new IllegalStateException("Chỉ giải ngân sau khi phê duyệt.");
         }

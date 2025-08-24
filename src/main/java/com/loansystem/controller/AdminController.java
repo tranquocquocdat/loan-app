@@ -14,40 +14,87 @@ public class AdminController {
 
     private final LoanWorkflowService service;
 
+    // Mặc định điều hướng sang "Chờ xử lý"
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("apps", service.listAll());
+    public String home() { return "redirect:/admin/pending"; }
+
+    // TAB 1: Chờ xử lý = SUBMITTED, UNDER_REVIEW, ASSESSED
+    @GetMapping("/pending")
+    public String pending(Model model) {
+        model.addAttribute("apps",
+                service.listByStatuses(LoanStatus.SUBMITTED, LoanStatus.UNDER_REVIEW, LoanStatus.ASSESSED));
         model.addAttribute("LoanStatus", LoanStatus.class);
+        model.addAttribute("section", "pending");
         return "admin/list";
     }
 
+    // TAB 2: Đã duyệt = APPROVED, DISBURSED
+    @GetMapping("/approved")
+    public String approved(Model model) {
+        model.addAttribute("apps",
+                service.listByStatuses(LoanStatus.APPROVED, LoanStatus.DISBURSED));
+        model.addAttribute("LoanStatus", LoanStatus.class);
+        model.addAttribute("section", "approved");
+        return "admin/list";
+    }
+
+    // TAB 3: Bị từ chối = REJECTED
+    @GetMapping("/rejected")
+    public String rejected(Model model) {
+        model.addAttribute("apps", service.listByStatuses(LoanStatus.REJECTED));
+        model.addAttribute("LoanStatus", LoanStatus.class);
+        model.addAttribute("section", "rejected");
+        return "admin/list";
+    }
+
+    // TAB 4: Lưu trữ = tất cả trạng thái kết thúc (đọc-only)
+    @GetMapping("/archived")
+    public String archived(Model model) {
+        model.addAttribute("apps",
+                service.listByStatuses(LoanStatus.APPROVED, LoanStatus.DISBURSED, LoanStatus.REJECTED));
+        model.addAttribute("LoanStatus", LoanStatus.class);
+        model.addAttribute("section", "archived");
+        return "admin/list";
+    }
+
+    // ==== Actions ====
     @PostMapping("/{id}/review")
-    public String review(@PathVariable Long id) {
+    public String review(@PathVariable("id") Long id) {
         service.moveToReview(id);
-        return "redirect:/admin";
+        return "redirect:/admin/pending";
     }
 
     @PostMapping("/{id}/assessment")
-    public String assessment(@PathVariable Long id, @RequestParam(required = false) String note) {
+    public String assessment(@PathVariable("id") Long id,
+                             @RequestParam(value = "note", required = false) String note) {
         service.completeAssessment(id, note);
-        return "redirect:/admin";
+        return "redirect:/admin/pending";
     }
 
     @PostMapping("/{id}/approve")
-    public String approve(@PathVariable Long id, @RequestParam(required = false) String note) {
+    public String approve(@PathVariable("id") Long id,
+                          @RequestParam(value = "note", required = false) String note) {
         service.approve(id, note);
-        return "redirect:/admin";
+        return "redirect:/admin/approved";
     }
 
     @PostMapping("/{id}/reject")
-    public String reject(@PathVariable Long id, @RequestParam String reason) {
+    public String reject(@PathVariable("id") Long id,
+                         @RequestParam("reason") String reason) {
         service.reject(id, reason);
-        return "redirect:/admin";
+        return "redirect:/admin/rejected";
     }
 
     @PostMapping("/{id}/disburse")
-    public String disburse(@PathVariable Long id) {
+    public String disburse(@PathVariable("id") Long id) {
         service.disburse(id);
-        return "redirect:/admin";
+        return "redirect:/admin/approved";
+    }
+
+    @GetMapping("/{id}/contract")
+    public String contract(@PathVariable("id") Long id, Model model) {
+        var app = service.get(id).orElseThrow();
+        model.addAttribute("app", app);
+        return "admin/contract";
     }
 }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <title>Đăng nhập</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container" style="max-width:420px">
+    <h1>Đăng nhập</h1>
+
+    <form th:action="@{/login}" method="post">
+        <label>Tài khoản</label>
+        <input type="text" name="username" autofocus required>
+        <label>Mật khẩu</label>
+        <input type="password" name="password" required>
+        <p><button type="submit">Sign in</button></p>
+    </form>
+
+    <p><a class="link" href="/">← Về trang nộp hồ sơ</a></p>
+</div>
+</body>
+</html>

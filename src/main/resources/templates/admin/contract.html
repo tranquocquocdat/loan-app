@@ -1,0 +1,95 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <title>Hợp đồng tín dụng</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+    /* Print-only tweaks */
+    @media print {
+      .no-print { display:none !important; }
+      body { background:white; }
+      .contract { box-shadow:none; border:1px solid #e5e7eb; }
+    }
+    .contract h2 { margin:0 0 8px 0 }
+    .row { display:flex; gap:16px }
+    .col { flex:1 }
+    .muted { color:#9ca3af; font-size:12px }
+    .section-title { font-weight:700; margin-top:16px; }
+    .sign { height:100px; border-top:1px dashed #6b7280; margin-top:48px; padding-top:8px }
+  </style>
+</head>
+<body>
+<div class="container contract">
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center">
+        <a class="link" href="/admin">← Quay lại Admin</a>
+        <button class="btn" onclick="window.print()">In / Lưu PDF</button>
+    </div>
+
+    <h2>HỢP ĐỒNG TÍN DỤNG</h2>
+    <div class="muted">Mã hồ sơ: <span th:text="${app.id}"></span> •
+        Ngày: <span th:text="${#temporals.format(app.approvedAt != null ? app.approvedAt : app.submittedAt, 'dd/MM/yyyy')}"></span>
+    </div>
+
+    <div class="section-title">BÊN CHO VAY (Ngân hàng)</div>
+    <p>
+        Công ty/Tổ chức: <strong>NGÂN HÀNG ABC</strong><br>
+        Địa chỉ: 123 Đường Tài Chính, Quận 1, TP.HCM<br>
+        Đại diện: Ông/Bà <strong>Nguyễn Văn A</strong> – Chức vụ: <em>Trưởng phòng tín dụng</em>
+    </p>
+
+    <div class="section-title">BÊN VAY (Khách hàng)</div>
+    <p>
+        Họ tên: <strong th:text="${app.customer.fullName}"></strong><br>
+        Email: <span th:text="${app.customer.email}"></span> –
+        Điện thoại: <span th:text="${app.customer.phone}"></span>
+    </p>
+
+    <div class="row">
+        <div class="col">
+            <div class="section-title">THÔNG TIN KHOẢN VAY</div>
+            <p>
+                Số tiền vay: <strong th:text="${#numbers.formatInteger(app.amount,3,'POINT')}"></strong> VND<br>
+                Kỳ hạn: <strong th:text="${app.termMonths}"></strong> tháng<br>
+                Mục đích: <span th:text="${app.purpose}">—</span><br>
+                Thu nhập KH: <span th:text="${#numbers.formatInteger(app.monthlyIncome,3,'POINT')}"></span> VND/tháng
+            </p>
+        </div>
+        <div class="col">
+            <div class="section-title">TRẠNG THÁI HỒ SƠ</div>
+            <p>
+                Trạng thái: <span class="badge" th:text="${app.status}"></span><br>
+                Tiếp nhận: <span th:text="${#temporals.format(app.reviewedAt, 'dd/MM/yyyy HH:mm')}">—</span><br>
+                Thẩm định: <span th:text="${#temporals.format(app.assessedAt, 'dd/MM/yyyy HH:mm')}">—</span><br>
+                Phê duyệt: <span th:text="${#temporals.format(app.approvedAt, 'dd/MM/yyyy HH:mm')}">—</span><br>
+                Giải ngân: <span th:text="${#temporals.format(app.disbursedAt, 'dd/MM/yyyy HH:mm')}">—</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="section-title">ĐIỀU KHOẢN CƠ BẢN</div>
+    <ol>
+        <li>Lãi suất, lịch trả nợ và phí liên quan được quy định tại phụ lục đi kèm hoặc theo thông báo của ngân hàng tại thời điểm giải ngân.</li>
+        <li>Bên vay cam kết sử dụng vốn đúng mục đích, thanh toán đúng hạn; trường hợp vi phạm sẽ chịu lãi phạt theo quy định.</li>
+        <li>Hợp đồng có hiệu lực kể từ ngày ký và/hoặc ngày giải ngân đầu tiên, tùy điều kiện đến trước.</li>
+    </ol>
+
+    <div class="row">
+        <div class="col">
+            <div class="sign">
+                Đại diện BÊN CHO VAY<br>
+                (ký, ghi rõ họ tên)
+            </div>
+        </div>
+        <div class="col">
+            <div class="sign">
+                Đại diện BÊN VAY<br>
+                (ký, ghi rõ họ tên)
+            </div>
+        </div>
+    </div>
+
+    <p class="muted">*Tài liệu được tạo tự động từ hệ thống. Dùng nút “In / Lưu PDF” để xuất file.</p>
+</div>
+</body>
+</html>

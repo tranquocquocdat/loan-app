@@ -15,20 +15,35 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    // Chain cho khu vực admin + trang login/logout
     @Bean
     @Order(1)
     public SecurityFilterChain adminChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/admin/**")
-                .authorizeHttpRequests(a -> a.anyRequest().hasRole("OFFICER"))
-                .httpBasic(Customizer.withDefaults())
+        http
+                // CHÚ Ý: thêm /login và /logout vào matcher của chain này
+                .securityMatcher("/admin/**", "/login", "/logout")
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers("/login", "/logout").permitAll()
+                        .anyRequest().hasRole("OFFICER"))
+                .formLogin(fl -> fl
+                        .loginPage("/login")                 // GET /login (render view)
+                        .loginProcessingUrl("/login")        // POST /login (xử lý auth)
+                        .defaultSuccessUrl("/admin", true)
+                        .permitAll())
+                .logout(lo -> lo
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll())
                 .csrf(c -> c.disable());
         return http.build();
     }
 
+    // Chain mặc định cho public routes (/, /apply, /status/**, /css/**, ...)
     @Bean
     @Order(2)
     public SecurityFilterChain appChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(a -> a.anyRequest().permitAll())
+        http
+                .authorizeHttpRequests(a -> a.anyRequest().permitAll())
                 .csrf(c -> c.disable());
         return http.build();
     }
@@ -36,10 +51,13 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService users(PasswordEncoder pw) {
         return new InMemoryUserDetailsManager(
-                User.withUsername("officer").password(pw.encode("officer123")).roles("OFFICER").build(),
-                User.withUsername("admin").password(pw.encode("admin123")).roles("OFFICER").build());
+                User.withUsername("officer").password(pw.encode("officer")).roles("OFFICER").build(),
+                User.withUsername("admin").password(pw.encode("admin")).roles("OFFICER").build()
+        );
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
