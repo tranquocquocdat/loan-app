@@ -1,81 +1,112 @@
 package com.loansystem.service;
 
-import com.loansystem.entity.*;
+import com.loansystem.entity.Customer;
+import com.loansystem.entity.LoanApplication;
+import com.loansystem.entity.LoanStatus;
 import com.loansystem.repository.CustomerRepository;
 import com.loansystem.repository.LoanApplicationRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class LoanWorkflowService {
 
     private final CustomerRepository customerRepo;
     private final LoanApplicationRepository loanRepo;
 
-    public LoanWorkflowService(CustomerRepository customerRepo, LoanApplicationRepository loanRepo) {
-        this.customerRepo = customerRepo;
-        this.loanRepo = loanRepo;
-    }
-
     @Transactional
-    public LoanApplication submitApplication(String fullName, String email, String phone,
-                                             BigDecimal amount, int termMonths, String purpose,
-                                             BigDecimal monthlyIncome) {
-        Customer c = new Customer();
-        c.setFullName(fullName);
-        c.setEmail(email);
-        c.setPhone(phone);
+    public LoanApplication submitApplication(
+            String fullName,
+            String email,
+            String phone,
+            BigDecimal amount,
+            int termMonths,
+            String purpose,
+            BigDecimal monthlyIncome) {
+
+        Customer c = Customer.builder().fullName(fullName).email(email).phone(phone).build();
         customerRepo.save(c);
 
-        LoanApplication app = new LoanApplication();
-        app.setCustomer(c);
-        app.setAmount(amount);
-        app.setTermMonths(termMonths);
-        app.setPurpose(purpose);
-        app.setMonthlyIncome(monthlyIncome);
-        app.setStatus(LoanStatus.SUBMITTED);
-        app.setSubmittedAt(LocalDateTime.now());
+        LoanApplication app =
+                LoanApplication.builder()
+                        .customer(c)
+                        .amount(amount)
+                        .termMonths(termMonths)
+                        .purpose(purpose)
+                        .monthlyIncome(monthlyIncome)
+                        .status(LoanStatus.SUBMITTED)
+                        .submittedAt(LocalDateTime.now())
+                        .build();
+
         return loanRepo.save(app);
     }
 
-    public List<LoanApplication> listAll() { return loanRepo.findAll(); }
-    public Optional<LoanApplication> get(Long id) { return loanRepo.findById(id); }
+    public List<LoanApplication> listAll() {
+        return loanRepo.findAll();
+    }
 
-    @Transactional
-    public LoanApplication moveToReview(Long id) {
-        LoanApplication app = loanRepo.findById(id).orElseThrow();
-        app.setStatus(LoanStatus.UNDER_REVIEW);
-        app.setReviewedAt(LocalDateTime.now());
-        return app;
+    public Optional<LoanApplication> get(Long id) {
+        return loanRepo.findById(id);
     }
 
     @Transactional
-    public LoanApplication assess(Long id, boolean approve, String noteOrReason) {
-        LoanApplication app = loanRepo.findById(id).orElseThrow();
-        app.setAssessedAt(LocalDateTime.now());
-        if (approve) {
-            app.setStatus(LoanStatus.ASSESSED_APPROVED);
-            app.setAssessmentNote(noteOrReason);
-        } else {
-            app.setStatus(LoanStatus.ASSESSED_REJECTED);
-            app.setRejectionReason(noteOrReason);
+    public LoanApplication moveToReview(Long id) {
+        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        a.setStatus(LoanStatus.UNDER_REVIEW);
+        a.setReviewedAt(LocalDateTime.now());
+        return a;
+    }
+
+    @Transactional
+    public LoanApplication completeAssessment(Long id, String note) {
+        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        if (a.getStatus() != LoanStatus.UNDER_REVIEW && a.getStatus() != LoanStatus.SUBMITTED) {
+            throw new IllegalStateException("Chỉ thẩm định khi đã tiếp nhận.");
         }
-        return app;
+        a.setStatus(LoanStatus.ASSESSED);
+        a.setAssessedAt(LocalDateTime.now());
+        a.setAssessmentNote(note);
+        return a;
+    }
+
+    @Transactional
+    public LoanApplication approve(Long id, String note) {
+        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        if (a.getStatus() != LoanStatus.ASSESSED) {
+            throw new IllegalStateException("Chỉ phê duyệt sau khi thẩm định.");
+        }
+        a.setStatus(LoanStatus.APPROVED);
+        a.setApprovedAt(LocalDateTime.now());
+        a.setApprovalNote(note);
+        return a;
+    }
+
+    @Transactional
+    public LoanApplication reject(Long id, String reason) {
+        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        if (a.getStatus() != LoanStatus.ASSESSED && a.getStatus() != LoanStatus.UNDER_REVIEW) {
+            throw new IllegalStateException("Chỉ từ chối sau khi tiếp nhận/thẩm định.");
+        }
+        a.setStatus(LoanStatus.REJECTED);
+        a.setRejectedAt(LocalDateTime.now());
+        a.setRejectionReason(reason);
+        return a;
     }
 
     @Transactional
     public LoanApplication disburse(Long id) {
-        LoanApplication app = loanRepo.findById(id).orElseThrow();
-        if (app.getStatus() != LoanStatus.ASSESSED_APPROVED) {
-            throw new IllegalStateException("Application is not approved yet");
+        LoanApplication a = loanRepo.findById(id).orElseThrow();
+        if (a.getStatus() != LoanStatus.APPROVED) {
+            throw new IllegalStateException("Chỉ giải ngân sau khi phê duyệt.");
         }
-        app.setStatus(LoanStatus.DISBURSED);
-        app.setDisbursedAt(LocalDateTime.now());
-        return app;
+        a.setStatus(LoanStatus.DISBURSED);
+        a.setDisbursedAt(LocalDateTime.now());
+        return a;
     }
 }

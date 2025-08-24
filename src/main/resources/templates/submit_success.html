@@ -1,11 +1,17 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="utf-8"/><title>Đã nộp hồ sơ</title><link rel="stylesheet" href="/css/style.css"></head>
+<head>
+  <meta charset="utf-8"/>
+  <title>Đã nộp hồ sơ</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
 <body>
 <div class="container">
   <h1>Đã nộp hồ sơ</h1>
   <p>Mã hồ sơ: <strong th:text="${app.id}"></strong></p>
-  <p>Link theo dõi: <a class="link" th:href="@{'/status/' + ${app.id}}" th:text="@{'/status/' + ${app.id}}"></a></p>
+  <p>Link theo dõi:
+    <a class="link" th:href="@{'/status/' + ${app.id}}" th:text="@{'/status/' + ${app.id}}"></a>
+  </p>
   <p><a class="link" href="/">Nộp thêm</a></p>
 </div>
 </body>

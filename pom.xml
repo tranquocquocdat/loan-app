@@ -1,11 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <groupId>com.loansystem</groupId>
   <artifactId>loan-management-system</artifactId>
-  <version>0.0.2</version>
-  <name>loan-management-system</name>
-  <description>Simple Credit Loan Workflow (Spring Boot + Thymeleaf + Oracle XE)</description>
+  <version>0.0.4</version>
 
   <properties>
     <java.version>17</java.version>
@@ -45,20 +45,19 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
+
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ojdbc8</artifactId>
       <version>21.11.0.0</version>
     </dependency>
+
+    <!-- Lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
+      <version>1.18.32</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
@@ -69,13 +68,10 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${spring-boot.version}</version>
         <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
+          <execution><goals><goal>repackage</goal></goals></execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -83,6 +79,15 @@
           <source>${java.version}</source>
           <target>${java.version}</target>
           <release>${java.version}</release>
+          <!-- quan trọng: để Spring đọc được tên tham số -->
+          <parameters>true</parameters>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>1.18.32</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
     </plugins>

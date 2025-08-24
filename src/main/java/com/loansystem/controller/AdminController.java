@@ -1,21 +1,23 @@
 package com.loansystem.controller;
 
+import com.loansystem.entity.LoanStatus;
 import com.loansystem.service.LoanWorkflowService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final LoanWorkflowService service;
 
-    public AdminController(LoanWorkflowService service) { this.service = service; }
-
     @GetMapping
     public String list(Model model) {
         model.addAttribute("apps", service.listAll());
+        model.addAttribute("LoanStatus", LoanStatus.class);
         return "admin/list";
     }
 
@@ -25,9 +27,21 @@ public class AdminController {
         return "redirect:/admin";
     }
 
-    @PostMapping("/{id}/assess")
-    public String assess(@PathVariable Long id, @RequestParam boolean approve, @RequestParam(required = false) String note) {
-        service.assess(id, approve, note);
+    @PostMapping("/{id}/assessment")
+    public String assessment(@PathVariable Long id, @RequestParam(required = false) String note) {
+        service.completeAssessment(id, note);
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/{id}/approve")
+    public String approve(@PathVariable Long id, @RequestParam(required = false) String note) {
+        service.approve(id, note);
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/{id}/reject")
+    public String reject(@PathVariable Long id, @RequestParam String reason) {
+        service.reject(id, reason);
         return "redirect:/admin";
     }
 
