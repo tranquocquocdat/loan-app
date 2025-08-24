@@ -20,7 +20,7 @@ public class LoanWorkflowService {
 
     private final CustomerRepository customerRepo;
     private final LoanApplicationRepository loanRepo;
-    private final BlacklistService blacklistService;
+    private final BlacklistService blacklistService; // nếu chưa dùng có thể giữ nguyên
 
     @Transactional
     public LoanApplication submitApplication(
@@ -49,7 +49,7 @@ public class LoanWorkflowService {
 
     public Optional<LoanApplication> get(Long id) { return loanRepo.findById(id); }
 
-    /* ====== PHÒNG TIẾP NHẬN ====== */
+    /* ====== Kiểm tra đủ thông tin để tiếp nhận ====== */
     public boolean isComplete(LoanApplication a) {
         return a.getCustomer() != null
                 && a.getCustomer().getFullName() != null && !a.getCustomer().getFullName().isBlank()
@@ -60,76 +60,52 @@ public class LoanWorkflowService {
                 && a.getMonthlyIncome() != null && a.getMonthlyIncome().compareTo(BigDecimal.ZERO) > 0;
     }
 
+    /* ====== “Chuyển đến phòng kế bên” ======
+       SUBMITTED -> UNDER_REVIEW
+       UNDER_REVIEW -> ASSESSED
+       ASSESSED -> APPROVED
+       APPROVED -> DISBURSED
+       (REJECTED, DISBURSED: không cho chuyển) */
     @Transactional
-    public LoanApplication intakeAccept(Long id) {
+    public LoanApplication moveNext(Long id) {
         var a = loanRepo.findById(id).orElseThrow();
-        if (!isComplete(a)) {
-            throw new IllegalStateException("Hồ sơ chưa đầy đủ, không thể tiếp nhận.");
-        }
-        a.setStatus(LoanStatus.UNDER_REVIEW);
-        a.setReviewedAt(LocalDateTime.now());
-        return a;
-    }
-
-    /* ====== PHÒNG THẨM ĐỊNH ====== */
-    @Transactional
-    public LoanApplication completeAssessment(Long id, String note) {
-        var a = loanRepo.findById(id).orElseThrow();
-        if (a.getStatus() != LoanStatus.UNDER_REVIEW && a.getStatus() != LoanStatus.SUBMITTED) {
-            throw new IllegalStateException("Chỉ thẩm định khi đã tiếp nhận.");
-        }
-        a.setStatus(LoanStatus.ASSESSED);
-        a.setAssessedAt(LocalDateTime.now());
-        a.setAssessmentNote(note);
-        return a;
-    }
-
-    @Transactional
-    public LoanApplication checkBlacklistOrReject(Long id) {
-        var a = loanRepo.findById(id).orElseThrow();
-        var customer = a.getCustomer();
-        var reasonOpt = blacklistService.check(customer.getEmail(), customer.getPhone());
-        if (reasonOpt.isPresent()) {
-            a.setStatus(LoanStatus.REJECTED);
-            a.setRejectedAt(LocalDateTime.now());
-            a.setRejectionReason(reasonOpt.get());
+        switch (a.getStatus()) {
+            case SUBMITTED -> {
+                if (!isComplete(a)) {
+                    throw new IllegalStateException("Hồ sơ chưa đầy đủ, không thể tiếp nhận.");
+                }
+                a.setStatus(LoanStatus.UNDER_REVIEW);
+                a.setReviewedAt(LocalDateTime.now());
+            }
+            case UNDER_REVIEW -> {
+                a.setStatus(LoanStatus.ASSESSED);
+                a.setAssessedAt(LocalDateTime.now());
+            }
+            case ASSESSED -> {
+                a.setStatus(LoanStatus.APPROVED);
+                a.setApprovedAt(LocalDateTime.now());
+            }
+            case APPROVED -> {
+                a.setStatus(LoanStatus.DISBURSED);
+                a.setDisbursedAt(LocalDateTime.now());
+            }
+            default -> throw new IllegalStateException("Không thể chuyển bước từ trạng thái hiện tại.");
         }
         return a;
     }
 
-    @Transactional
-    public LoanApplication approve(Long id, String note) {
-        var a = loanRepo.findById(id).orElseThrow();
-        if (a.getStatus() != LoanStatus.ASSESSED) {
-            throw new IllegalStateException("Chỉ phê duyệt sau khi thẩm định.");
-        }
-        a.setStatus(LoanStatus.APPROVED);
-        a.setApprovedAt(LocalDateTime.now());
-        a.setApprovalNote(note);
-        return a;
-    }
-
+    /* ====== Từ chối ở mọi bước chưa kết thúc ====== */
     @Transactional
     public LoanApplication reject(Long id, String reason) {
         var a = loanRepo.findById(id).orElseThrow();
-        if (a.getStatus() != LoanStatus.ASSESSED && a.getStatus() != LoanStatus.UNDER_REVIEW) {
-            throw new IllegalStateException("Chỉ từ chối sau khi tiếp nhận/thẩm định.");
+        var st = a.getStatus();
+        if (st == LoanStatus.DISBURSED) {
+            throw new IllegalStateException("Hồ sơ đã giải ngân, không thể từ chối.");
         }
+        // REJECTED lần 2: cho phép cập nhật lý do
         a.setStatus(LoanStatus.REJECTED);
         a.setRejectedAt(LocalDateTime.now());
         a.setRejectionReason(reason);
-        return a;
-    }
-
-    /* ====== PHÒNG GIẢI NGÂN ====== */
-    @Transactional
-    public LoanApplication disburse(Long id) {
-        var a = loanRepo.findById(id).orElseThrow();
-        if (a.getStatus() != LoanStatus.APPROVED) {
-            throw new IllegalStateException("Chỉ giải ngân sau khi phê duyệt.");
-        }
-        a.setStatus(LoanStatus.DISBURSED);
-        a.setDisbursedAt(LocalDateTime.now());
         return a;
     }
 }

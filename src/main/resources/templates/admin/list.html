@@ -36,9 +36,29 @@
       <td th:text="${a.termMonths}"></td>
       <td><span class="badge" th:text="${a.status}"></span></td>
       <td class="actions">
-        <!-- Nút Chi tiết theo phòng hiện tại -->
+        <!-- 1) Chi tiết -->
         <a class="btn btn-outline"
            th:href="@{'/admin/' + ${section} + '/app/' + ${a.id}}">Chi tiết</a>
+
+        <!-- 2) Chuyển đến phòng kế bên -->
+        <form th:action="@{'/admin/' + ${a.id} + '/next'}" method="post" style="display:inline;margin-left:6px">
+          <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section}}"/>
+          <!-- Enable rule theo tab -->
+          <button class="btn"
+                  th:disabled="${
+                    (section=='intake'       and a.status.name()!='SUBMITTED') or
+                    (section=='assessment'   and !(a.status.name()=='UNDER_REVIEW' or a.status.name()=='ASSESSED')) or
+                    (section=='disbursement' and a.status.name()!='APPROVED')
+                  }">Chuyển đến phòng kế bên</button>
+        </form>
+
+        <!-- 3) Từ chối (lý do) -->
+        <form th:action="@{'/admin/' + ${a.id} + '/reject'}" method="post" style="display:inline;margin-left:6px">
+          <input class="input" name="reason" placeholder="Lý do từ chối"
+                 th:disabled="${a.status.name()=='DISBURSED'}" required/>
+          <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section}}"/>
+          <button class="btn btn-danger" th:disabled="${a.status.name()=='DISBURSED'}">Từ chối</button>
+        </form>
       </td>
     </tr>
     </tbody>

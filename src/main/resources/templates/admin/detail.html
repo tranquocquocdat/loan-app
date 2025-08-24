@@ -34,69 +34,28 @@
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
     <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
 
-    <h3>Thao tác</h3>
+    <h3>Hành động</h3>
     <div class="actions">
+        <!-- 1) Chi tiết: đang ở chi tiết rồi -->
 
-        <!-- PHÒNG TIẾP NHẬN -->
-        <div th:if="${section=='intake'}">
-            <form th:action="@{'/admin/' + ${app.id} + '/intake/accept'}" method="post">
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/intake/app/' + ${app.id}}"/>
-                <button class="btn btn-primary"
-                        th:disabled="${app.status.name()!='SUBMITTED' or !canAccept}"
-                        title="Chỉ khi hồ sơ đầy đủ và ở trạng thái SUBMITTED">Tiếp nhận</button>
-            </form>
-            <p th:if="${app.status.name()=='SUBMITTED' and !canAccept}" style="opacity:.8;margin-top:6px">
-                ⚠️ Hồ sơ chưa đủ trường bắt buộc, vui lòng bổ sung trước khi tiếp nhận.
-            </p>
-        </div>
+        <!-- 2) Chuyển đến phòng kế bên -->
+        <form th:action="@{'/admin/' + ${app.id} + '/next'}" method="post" style="display:inline">
+            <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section} + '/app/' + ${app.id}}"/>
+            <button class="btn"
+                    th:disabled="${
+                (section=='intake'       and app.status.name()!='SUBMITTED') or
+                (section=='assessment'   and !(app.status.name()=='UNDER_REVIEW' or app.status.name()=='ASSESSED')) or
+                (section=='disbursement' and app.status.name()!='APPROVED')
+              }">Chuyển đến phòng kế bên</button>
+        </form>
 
-        <!-- PHÒNG THẨM ĐỊNH -->
-        <div th:if="${section=='assessment'}">
-            <form th:if="${app.status.name()=='UNDER_REVIEW'}"
-                  th:action="@{'/admin/' + ${app.id} + '/assessment/check-blacklist'}" method="post">
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
-                <button class="btn">Check blacklist</button>
-            </form>
-
-            <form th:if="${app.status.name()=='UNDER_REVIEW'}"
-                  th:action="@{'/admin/' + ${app.id} + '/assessment/complete'}" method="post">
-                <input class="input" name="note" placeholder="Ghi chú thẩm định"/>
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
-                <button class="btn">Hoàn tất thẩm định</button>
-            </form>
-
-            <form th:if="${app.status.name()=='ASSESSED'}"
-                  th:action="@{'/admin/' + ${app.id} + '/approve'}" method="post">
-                <input class="input" name="note" placeholder="Ghi chú phê duyệt"/>
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
-                <button class="btn btn-success">Phê duyệt</button>
-            </form>
-
-            <form th:if="${app.status.name()=='UNDER_REVIEW' or app.status.name()=='ASSESSED'}"
-                  th:action="@{'/admin/' + ${app.id} + '/reject'}" method="post">
-                <input class="input" name="reason" placeholder="Lý do từ chối" required/>
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
-                <button class="btn btn-danger">Từ chối</button>
-            </form>
-
-            <p th:if="${app.rejectionReason}" style="margin-top:6px">
-                <b>Lý do từ chối:</b> <span th:text="${app.rejectionReason}"></span>
-            </p>
-        </div>
-
-        <!-- PHÒNG GIẢI NGÂN -->
-        <div th:if="${section=='disbursement'}">
-            <form th:if="${app.status.name()=='APPROVED'}"
-                  th:action="@{'/admin/' + ${app.id} + '/disburse'}" method="post">
-                <input type="hidden" name="redirectTo" th:value="@{'/admin/disbursement/app/' + ${app.id}}"/>
-                <button class="btn btn-warning">Giải ngân</button>
-            </form>
-
-            <a class="btn btn-outline"
-               th:if="${app.status.name()=='APPROVED' or app.status.name()=='DISBURSED'}"
-               th:href="@{'/admin/' + ${app.id} + '/contract'}">Hợp đồng</a>
-            <a class="link" th:href="@{'/status/' + ${app.id}}">Xem cho KH</a>
-        </div>
+        <!-- 3) Từ chối (lý do) -->
+        <form th:action="@{'/admin/' + ${app.id} + '/reject'}" method="post" style="display:inline;margin-left:6px">
+            <input class="input" name="reason" placeholder="Lý do từ chối"
+                   th:disabled="${app.status.name()=='DISBURSED'}" required/>
+            <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section} + '/app/' + ${app.id}}"/>
+            <button class="btn btn-danger" th:disabled="${app.status.name()=='DISBURSED'}">Từ chối</button>
+        </form>
     </div>
 
     <div style="margin-top:16px">

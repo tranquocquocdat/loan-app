@@ -19,7 +19,7 @@ public class AdminController {
     @GetMapping
     public String home() { return "redirect:/admin/intake"; }
 
-    /* ===== TAB 1: PHÒNG TIẾP NHẬN ===== */
+    /* ===== Tab 1: PHÒNG TIẾP NHẬN (SUBMITTED) ===== */
     @GetMapping("/intake")
     public String intake(Model model,
                          @ModelAttribute("error") String error,
@@ -29,7 +29,6 @@ public class AdminController {
         return "admin/list";
     }
 
-    /** Chi tiết hồ sơ - phòng tiếp nhận */
     @GetMapping("/intake/app/{id}")
     public String intakeDetail(@PathVariable Long id,
                                @ModelAttribute("error") String error,
@@ -42,20 +41,7 @@ public class AdminController {
         return "admin/detail";
     }
 
-    @PostMapping("/{id}/intake/accept")
-    public String intakeAccept(@PathVariable("id") Long id,
-                               @RequestParam(value = "redirectTo", required = false) String redirectTo,
-                               RedirectAttributes ra) {
-        try {
-            service.intakeAccept(id);
-            ra.addFlashAttribute("success", "Đã tiếp nhận hồ sơ #" + id);
-        } catch (IllegalStateException ex) {
-            ra.addFlashAttribute("error", ex.getMessage());
-        }
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/intake");
-    }
-
-    /* ===== TAB 2: PHÒNG THẨM ĐỊNH TÍN DỤNG ===== */
+    /* ===== Tab 2: PHÒNG THẨM ĐỊNH (UNDER_REVIEW, ASSESSED) ===== */
     @GetMapping("/assessment")
     public String assessment(Model model,
                              @ModelAttribute("error") String error,
@@ -66,7 +52,6 @@ public class AdminController {
         return "admin/list";
     }
 
-    /** Chi tiết hồ sơ - phòng thẩm định */
     @GetMapping("/assessment/app/{id}")
     public String assessmentDetail(@PathVariable Long id,
                                    @ModelAttribute("error") String error,
@@ -77,52 +62,7 @@ public class AdminController {
         return "admin/detail";
     }
 
-    @PostMapping("/{id}/assessment/check-blacklist")
-    public String checkBlacklist(@PathVariable("id") Long id,
-                                 @RequestParam(value = "redirectTo", required = false) String redirectTo,
-                                 RedirectAttributes ra) {
-        var before = service.get(id).orElseThrow().getStatus();
-        var after = service.checkBlacklistOrReject(id).getStatus();
-        if (after == LoanStatus.REJECTED) {
-            ra.addFlashAttribute("error", "Hồ sơ #" + id + " bị từ chối do nằm trong blacklist.");
-        } else if (before == LoanStatus.UNDER_REVIEW) {
-            ra.addFlashAttribute("success", "Hồ sơ #" + id + " không nằm trong blacklist.");
-        }
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/assessment");
-    }
-
-    @PostMapping("/{id}/assessment/complete")
-    public String assessmentComplete(@PathVariable("id") Long id,
-                                     @RequestParam(value = "note", required = false) String note,
-                                     @RequestParam(value = "redirectTo", required = false) String redirectTo,
-                                     RedirectAttributes ra) {
-        service.completeAssessment(id, note);
-        ra.addFlashAttribute("success", "Đã hoàn tất thẩm định hồ sơ #" + id);
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/assessment");
-    }
-
-    @PostMapping("/{id}/approve")
-    public String approve(@PathVariable("id") Long id,
-                          @RequestParam(value = "note", required = false) String note,
-                          @RequestParam(value = "redirectTo", required = false) String redirectTo,
-                          RedirectAttributes ra) {
-        service.approve(id, note);
-        ra.addFlashAttribute("success", "Đã phê duyệt hồ sơ #" + id);
-        // sau approve, thường chuyển qua phòng giải ngân
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/disbursement/app/" + id);
-    }
-
-    @PostMapping("/{id}/reject")
-    public String reject(@PathVariable("id") Long id,
-                         @RequestParam("reason") String reason,
-                         @RequestParam(value = "redirectTo", required = false) String redirectTo,
-                         RedirectAttributes ra) {
-        service.reject(id, reason);
-        ra.addFlashAttribute("error", "Đã từ chối hồ sơ #" + id + ": " + reason);
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/assessment/app/" + id);
-    }
-
-    /* ===== TAB 3: PHÒNG GIẢI NGÂN ===== */
+    /* ===== Tab 3: PHÒNG GIẢI NGÂN (APPROVED, DISBURSED) ===== */
     @GetMapping("/disbursement")
     public String disbursement(Model model,
                                @ModelAttribute("error") String error,
@@ -133,7 +73,6 @@ public class AdminController {
         return "admin/list";
     }
 
-    /** Chi tiết hồ sơ - phòng giải ngân */
     @GetMapping("/disbursement/app/{id}")
     public String disbursementDetail(@PathVariable Long id,
                                      @ModelAttribute("error") String error,
@@ -144,16 +83,44 @@ public class AdminController {
         return "admin/detail";
     }
 
-    @PostMapping("/{id}/disburse")
-    public String disburse(@PathVariable("id") Long id,
+    /* ====== Nút “Chuyển đến phòng kế bên” (điều hướng tự động theo trạng thái) ====== */
+    @PostMapping("/{id}/next")
+    public String moveNext(@PathVariable Long id,
                            @RequestParam(value = "redirectTo", required = false) String redirectTo,
                            RedirectAttributes ra) {
-        service.disburse(id);
-        ra.addFlashAttribute("success", "Đã giải ngân hồ sơ #" + id);
-        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin/disbursement/app/" + id);
+        var before = service.get(id).orElseThrow().getStatus();
+        try {
+            var after = service.moveNext(id).getStatus();
+            String msg = switch (before) {
+                case SUBMITTED -> "Đã tiếp nhận hồ sơ #" + id;
+                case UNDER_REVIEW -> "Đã hoàn tất thẩm định hồ sơ #" + id;
+                case ASSESSED -> "Đã phê duyệt hồ sơ #" + id;
+                case APPROVED -> "Đã giải ngân hồ sơ #" + id;
+                default -> "Đã cập nhật hồ sơ #" + id;
+            };
+            ra.addFlashAttribute("success", msg);
+        } catch (IllegalStateException ex) {
+            ra.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin");
     }
 
-    /* ===== Hợp đồng ===== */
+    /* ====== Nút “Từ chối (lý do)” ở mọi tab ====== */
+    @PostMapping("/{id}/reject")
+    public String reject(@PathVariable Long id,
+                         @RequestParam("reason") String reason,
+                         @RequestParam(value = "redirectTo", required = false) String redirectTo,
+                         RedirectAttributes ra) {
+        try {
+            service.reject(id, reason);
+            ra.addFlashAttribute("error", "Đã từ chối hồ sơ #" + id + ": " + reason);
+        } catch (IllegalStateException ex) {
+            ra.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:" + (StringUtils.hasText(redirectTo) ? redirectTo : "/admin");
+    }
+
+    /* ===== Hợp đồng (giữ nguyên) ===== */
     @GetMapping("/{id}/contract")
     public String contract(@PathVariable("id") Long id, Model model) {
         var app = service.get(id).orElseThrow();
