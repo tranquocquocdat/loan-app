@@ -128,11 +128,23 @@
     </div>
 
     <nav class="tabs">
-        <a class="tab" href="/admin/dashboard">Dashboard</a>
-        <a class="tab" href="/admin/intake" th:class="${section=='intake'} ? 'tab active' : 'tab'">Phòng tiếp nhận</a>
-        <a class="tab" href="/admin/assessment" th:class="${section=='assessment'} ? 'tab active' : 'tab'">Phòng thẩm định</a>
-        <a class="tab" href="/admin/disbursement" th:class="${section=='disbursement'} ? 'tab active' : 'tab'">Phòng giải ngân</a>
+        <a th:if="${userRole == 'ADMIN'}" class="tab" href="/admin/dashboard">Dashboard</a>
+        <a th:if="${userRole == 'ADMIN' or userRole == 'INTAKE'}" class="tab" href="/admin/intake" th:class="${section=='intake'} ? 'tab active' : 'tab'">Phòng tiếp nhận</a>
+        <a th:if="${userRole == 'ADMIN' or userRole == 'ASSESSMENT'}" class="tab" href="/admin/assessment" th:class="${section=='assessment'} ? 'tab active' : 'tab'">Phòng thẩm định</a>
+        <a th:if="${userRole == 'ADMIN' or userRole == 'DISBURSEMENT'}" class="tab" href="/admin/disbursement" th:class="${section=='disbursement'} ? 'tab active' : 'tab'">Phòng giải ngân</a>
     </nav>
+
+    <!-- Role info -->
+    <div style="background: #0f172a; padding: 8px 16px; border-radius: 6px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.9em;">
+            <span style="opacity: 0.7;">Đăng nhập với quyền:</span>
+            <span th:if="${userRole == 'ADMIN'}" style="color: #ef4444; font-weight: bold;">👑 Quản trị viên</span>
+            <span th:if="${userRole == 'INTAKE'}" style="color: #22d3ee; font-weight: bold;">📥 Nhân viên tiếp nhận</span>
+            <span th:if="${userRole == 'ASSESSMENT'}" style="color: #a855f7; font-weight: bold;">🔍 Nhân viên thẩm định</span>
+            <span th:if="${userRole == 'DISBURSEMENT'}" style="color: #22c55e; font-weight: bold;">💰 Nhân viên giải ngân</span>
+        </div>
+        <a href="/logout" style="color: #9ca3af; font-size: 0.9em; text-decoration: none;">Đăng xuất</a>
+    </div>
 
     <!-- Timeline trạng thái -->
     <div class="status-timeline">

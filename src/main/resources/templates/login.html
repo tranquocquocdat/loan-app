@@ -2,22 +2,159 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
-    <title>Đăng nhập</title>
+    <title>Đăng nhập - Hệ thống quản lý vay tín dụng</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .login-container {
+            max-width: 480px;
+            margin: 60px auto;
+            padding: 32px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.3);
+        }
+        .role-info {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            border: 1px solid #374151;
+        }
+        .role-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #374151;
+        }
+        .role-item:last-child {
+            border-bottom: none;
+        }
+        .demo-btn {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            border: 1px solid #4b5563;
+            background: #1f2937;
+            color: #e5e7eb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .demo-btn:hover {
+            background: #374151;
+        }
+    </style>
 </head>
 <body>
-<div class="container" style="max-width:420px">
-    <h1>Đăng nhập</h1>
+<div class="login-container">
+    <h1 style="text-align: center; margin-bottom: 8px;">🏦 Đăng nhập</h1>
+    <p style="text-align: center; opacity: 0.7; margin-bottom: 24px;">Hệ thống quản lý vay tín dụng</p>
+
+    <!-- Thông báo lỗi -->
+    <div th:if="${param.error}" class="alert alert-error" style="margin-bottom: 16px;">
+        ❌ Tài khoản hoặc mật khẩu không đúng
+    </div>
+
+    <!-- Thông báo đăng xuất -->
+    <div th:if="${param.logout}" class="alert alert-info" style="margin-bottom: 16px;">
+        ✅ Đã đăng xuất thành công
+    </div>
 
     <form th:action="@{/login}" method="post">
-        <label>Tài khoản</label>
-        <input type="text" name="username" autofocus required>
-        <label>Mật khẩu</label>
-        <input type="password" name="password" required>
-        <p><button type="submit">Sign in</button></p>
+        <div class="form-group">
+            <label>Tài khoản</label>
+            <input type="text" name="username" autofocus required placeholder="Nhập username...">
+        </div>
+
+        <div class="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" name="password" required placeholder="Nhập mật khẩu...">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+            🔐 Đăng nhập
+        </button>
     </form>
 
-    <p><a class="link" href="/">← Về trang nộp hồ sơ</a></p>
+    <!-- Thông tin tài khoản demo -->
+    <div class="role-info">
+        <h3 style="margin: 0 0 12px 0; font-size: 1rem;">👥 Tài khoản demo:</h3>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #ef4444;">👑 Quản trị viên</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Toàn quyền hệ thống</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('admin', 'admin123')">admin/admin123</button>
+        </div>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #22d3ee;">📥 Phòng tiếp nhận</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Tiếp nhận hồ sơ</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('intake', 'intake123')">intake/intake123</button>
+        </div>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #a855f7;">🔍 Phòng thẩm định</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Thẩm định & quyết định</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('assessment', 'assessment123')">assessment/assessment123</button>
+        </div>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #22c55e;">💰 Phòng giải ngân</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Giải ngân khoản vay</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('disbursement', 'disbursement123')">disbursement/disbursement123</button>
+        </div>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #22d3ee;">👤 Khách hàng</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Nộp và theo dõi hồ sơ vay</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('customer1', 'customer123')">customer1/customer123</button>
+        </div>
+
+        <div class="role-item">
+            <div>
+                <strong style="color: #22d3ee;">👤 Khách hàng 2</strong>
+                <div style="font-size: 0.8em; opacity: 0.7;">Tài khoản demo khác</div>
+            </div>
+            <button class="demo-btn" onclick="fillLogin('john', 'john123')">john/john123</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <a class="link" href="/">← Về trang nộp hồ sơ</a>
+    </div>
+
+    <div style="margin-top: 16px; padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #22d3ee;">
+        <small style="opacity: 0.7;">
+            💡 <strong>Hướng dẫn:</strong> Click vào các nút bên phải để tự động điền thông tin đăng nhập demo
+        </small>
+    </div>
 </div>
+
+<script>
+function fillLogin(username, password) {
+    document.querySelector('input[name="username"]').value = username;
+    document.querySelector('input[name="password"]').value = password;
+
+    // Highlight the form briefly
+    const form = document.querySelector('form');
+    form.style.transition = 'all 0.3s';
+    form.style.transform = 'scale(1.02)';
+    form.style.boxShadow = '0 0 20px rgba(34, 211, 238, 0.3)';
+
+    setTimeout(() => {
+        form.style.transform = 'scale(1)';
+        form.style.boxShadow = 'none';
+    }, 300);
+}
+</script>
 </body>
 </html>

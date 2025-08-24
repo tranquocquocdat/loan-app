@@ -3,7 +3,6 @@ package com.loansystem.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,20 +14,40 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    // Chain cho khu vực admin + trang login/logout
+    // Chain cho khu vực admin + login/logout
     @Bean
     @Order(1)
     public SecurityFilterChain adminChain(HttpSecurity http) throws Exception {
         http
-                // CHÚ Ý: thêm /login và /logout vào matcher của chain này
                 .securityMatcher("/admin/**", "/login", "/logout")
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/login", "/logout").permitAll()
-                        .anyRequest().hasRole("OFFICER"))
+
+                        // Dashboard - chỉ admin có thể xem tất cả
+                        .requestMatchers("/admin", "/admin/dashboard").hasRole("ADMIN")
+
+                        // Phòng tiếp nhận
+                        .requestMatchers("/admin/intake/**").hasAnyRole("ADMIN", "INTAKE")
+
+                        // Phòng thẩm định
+                        .requestMatchers("/admin/assessment/**").hasAnyRole("ADMIN", "ASSESSMENT")
+
+                        // Phòng giải ngân
+                        .requestMatchers("/admin/disbursement/**").hasAnyRole("ADMIN", "DISBURSEMENT")
+
+                        // Actions chỉ admin hoặc role tương ứng
+                        .requestMatchers("/admin/*/intake/**").hasAnyRole("ADMIN", "INTAKE")
+                        .requestMatchers("/admin/*/assessment/**").hasAnyRole("ADMIN", "ASSESSMENT")
+                        .requestMatchers("/admin/*/disburse").hasAnyRole("ADMIN", "DISBURSEMENT")
+
+                        // Contract và utility - tất cả officer có thể xem
+                        .requestMatchers("/admin/*/contract").hasAnyRole("ADMIN", "INTAKE", "ASSESSMENT", "DISBURSEMENT")
+
+                        .anyRequest().hasAnyRole("ADMIN", "INTAKE", "ASSESSMENT", "DISBURSEMENT"))
                 .formLogin(fl -> fl
-                        .loginPage("/login")                 // GET /login (render view)
-                        .loginProcessingUrl("/login")        // POST /login (xử lý auth)
-                        .defaultSuccessUrl("/admin", true)
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/admin/home", true)
                         .permitAll())
                 .logout(lo -> lo
                         .logoutUrl("/logout")
@@ -38,11 +57,42 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Chain mặc định cho public routes (/, /apply, /status/**, /css/**, ...)
+    // Chain cho customer routes
     @Bean
     @Order(2)
-    public SecurityFilterChain appChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain customerChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/", "/apply", "/my-applications", "/status/**", "/customer/**")
+                .authorizeHttpRequests(a -> a
+                        // Trang chủ và apply cần đăng nhập
+                        .requestMatchers("/", "/apply").hasAnyRole("CUSTOMER", "ADMIN")
+
+                        // Xem hồ sơ cá nhân
+                        .requestMatchers("/my-applications", "/customer/**").hasRole("CUSTOMER")
+
+                        // Xem status cụ thể - cần đăng nhập
+                        .requestMatchers("/status/**").hasAnyRole("CUSTOMER", "ADMIN", "INTAKE", "ASSESSMENT", "DISBURSEMENT")
+
+                        .anyRequest().authenticated())
+                .formLogin(fl -> fl
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/customer/home", true)
+                        .permitAll())
+                .logout(lo -> lo
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll())
+                .csrf(c -> c.disable());
+        return http.build();
+    }
+
+    // Chain cho static resources và login
+    @Bean
+    @Order(3)
+    public SecurityFilterChain publicChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/css/**", "/js/**", "/images/**", "/favicon.ico")
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll())
                 .csrf(c -> c.disable());
         return http.build();
@@ -51,8 +101,23 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService users(PasswordEncoder pw) {
         return new InMemoryUserDetailsManager(
-                User.withUsername("officer").password(pw.encode("officer")).roles("OFFICER").build(),
-                User.withUsername("admin").password(pw.encode("admin")).roles("OFFICER").build()
+                // Admin - toàn quyền
+                User.withUsername("admin").password(pw.encode("admin123")).roles("ADMIN").build(),
+
+                // Phòng tiếp nhận
+                User.withUsername("intake").password(pw.encode("intake123")).roles("INTAKE").build(),
+
+                // Phòng thẩm định
+                User.withUsername("assessment").password(pw.encode("assessment123")).roles("ASSESSMENT").build(),
+
+                // Phòng giải ngân
+                User.withUsername("disbursement").password(pw.encode("disbursement123")).roles("DISBURSEMENT").build(),
+
+                // Khách hàng demo
+                User.withUsername("customer1").password(pw.encode("customer123")).roles("CUSTOMER").build(),
+                User.withUsername("customer2").password(pw.encode("customer123")).roles("CUSTOMER").build(),
+                User.withUsername("john").password(pw.encode("john123")).roles("CUSTOMER").build(),
+                User.withUsername("jane").password(pw.encode("jane123")).roles("CUSTOMER").build()
         );
     }
 

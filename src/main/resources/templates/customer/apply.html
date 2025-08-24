@@ -1,0 +1,266 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <title>Đăng ký vay tín dụng</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+    .form-section {
+      background: #1f2937;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      border: 1px solid #374151;
+    }
+    .loan-calculator {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      border: 1px solid #374151;
+    }
+    .calculator-result {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #22d3ee;
+      margin-top: 8px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .customer-info {
+      background: linear-gradient(135deg, #22d3ee, #0891b2);
+      padding: 16px;
+      border-radius: 8px;
+      color: white;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+    <!-- Customer Header -->
+    <div class="customer-info">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0;">📝 Đăng ký vay tín dụng</h1>
+                <p style="margin: 8px 0 0 0; opacity: 0.9;">Đăng nhập với tài khoản: <strong th:text="${username}"></strong></p>
+            </div>
+            <a href="/my-applications" class="btn btn-outline" style="border-color: white; color: white;">
+                ← Quay lại hồ sơ
+            </a>
+        </div>
+    </div>
+
+    <form method="post" action="/apply" id="loanForm">
+        <div class="form-grid">
+            <!-- Thông tin cá nhân -->
+            <div class="form-section">
+                <h3>👤 Thông tin cá nhân</h3>
+                <div class="form-group">
+                    <label>Họ và tên <span style="color: #ef4444;">*</span></label>
+                    <input name="fullName" required placeholder="Nhập họ tên đầy đủ"/>
+                </div>
+                <div class="form-group">
+                    <label>Email <span style="color: #ef4444;">*</span></label>
+                    <input name="email" type="email" required placeholder="example@email.com"/>
+                </div>
+                <div class="form-group">
+                    <label>Số điện thoại <span style="color: #ef4444;">*</span></label>
+                    <input name="phone" required placeholder="09xxxxxxxx"/>
+                </div>
+                <div class="form-group">
+                    <label>Thu nhập hàng tháng (VND) <span style="color: #ef4444;">*</span></label>
+                    <input name="monthlyIncome" type="number" step="100000" value="15000000" required
+                           placeholder="15,000,000" id="monthlyIncomeInput"/>
+                    <small style="opacity: 0.7; margin-top: 4px; display: block;">
+                        💡 Thu nhập ít nhất 5 triệu VND/tháng
+                    </small>
+                </div>
+            </div>
+
+            <!-- Thông tin khoản vay -->
+            <div class="form-section">
+                <h3>💰 Thông tin khoản vay</h3>
+                <div class="form-group">
+                    <label>Số tiền vay (VND) <span style="color: #ef4444;">*</span></label>
+                    <input name="amount" type="number" step="1000000" value="50000000" required
+                           placeholder="50,000,000" id="amountInput" min="1000000" max="2000000000"/>
+                    <small style="opacity: 0.7; margin-top: 4px; display: block;">
+                        💡 Từ 1 triệu đến 2 tỷ VND
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Thời hạn vay <span style="color: #ef4444;">*</span></label>
+                    <select name="termMonths" id="termSelect" required>
+                        <option value="6">6 tháng</option>
+                        <option value="12" selected>12 tháng</option>
+                        <option value="18">18 tháng</option>
+                        <option value="24">24 tháng</option>
+                        <option value="36">36 tháng</option>
+                        <option value="48">48 tháng</option>
+                        <option value="60">60 tháng</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mục đích vay</label>
+                    <select name="purpose">
+                        <option value="">-- Chọn mục đích --</option>
+                        <option value="Tiêu dùng cá nhân">Tiêu dùng cá nhân</option>
+                        <option value="Mua xe">Mua xe</option>
+                        <option value="Sửa chữa nhà">Sửa chữa nhà</option>
+                        <option value="Kinh doanh">Kinh doanh</option>
+                        <option value="Giáo dục">Giáo dục</option>
+                        <option value="Y tế">Y tế</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+
+                <!-- Loan Calculator -->
+                <div class="loan-calculator">
+                    <h4 style="margin: 0 0 12px 0;">🧮 Ước tính khoản trả hàng tháng</h4>
+                    <div id="calculatorResult" class="calculator-result">
+                        Khoản trả/tháng: <span id="monthlyPayment">0 VND</span>
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.7; margin-top: 4px;">
+                        Lãi suất ước tính: 12%/năm
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Section -->
+        <div class="form-section">
+            <h3>📋 Xác nhận thông tin</h3>
+            <div style="background: #0f172a; padding: 16px; border-radius: 8px; margin: 12px 0;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" required id="agreementCheck"/>
+                    <span>Tôi xác nhận các thông tin trên là chính xác và đồng ý với
+            <a href="#" class="link">điều khoản dịch vụ</a> của ngân hàng
+          </span>
+                </label>
+            </div>
+
+            <div id="eligibilityCheck" style="margin: 12px 0; padding: 12px; border-radius: 8px; display: none;">
+                <!-- Dynamic eligibility message -->
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                <button type="button" onclick="history.back()" class="btn btn-outline">
+                    ← Hủy bỏ
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    📤 Nộp hồ sơ vay
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Help Section -->
+    <div style="margin-top: 30px; padding: 16px; background: #0f172a; border-radius: 8px; border: 1px solid #374151;">
+        <h4>💡 Lưu ý quan trọng</h4>
+        <ul style="margin: 12px 0; opacity: 0.8;">
+            <li>Thời gian xét duyệt: 1-3 ngày làm việc</li>
+            <li>Ngân hàng có thể yêu cầu bổ sung giấy tờ</li>
+            <li>Lãi suất chính thức sẽ được thông báo khi phê duyệt</li>
+            <li>Không mất phí đăng ký hồ sơ</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// Loan Calculator
+function calculateLoan() {
+  const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+  const termMonths = parseInt(document.getElementById('termSelect').value) || 12;
+  const monthlyIncome = parseFloat(document.getElementById('monthlyIncomeInput').value) || 0;
+
+  if (amount > 0 && termMonths > 0) {
+    // Simple calculation with 12% annual rate (1% monthly)
+    const monthlyRate = 0.01;
+    const factor = Math.pow(1 + monthlyRate, termMonths);
+    const monthlyPayment = amount * (monthlyRate * factor) / (factor - 1);
+
+    document.getElementById('monthlyPayment').textContent =
+      new Intl.NumberFormat('vi-VN').format(Math.round(monthlyPayment)) + ' VND';
+
+    // Check eligibility
+    checkEligibility(monthlyPayment, monthlyIncome, amount);
+  }
+}
+
+function checkEligibility(monthlyPayment, monthlyIncome, amount) {
+  const eligibilityDiv = document.getElementById('eligibilityCheck');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (monthlyIncome <= 0) {
+    eligibilityDiv.style.display = 'none';
+    return;
+  }
+
+  const dtiRatio = monthlyPayment / monthlyIncome;
+  eligibilityDiv.style.display = 'block';
+
+  if (dtiRatio > 0.33) {
+    eligibilityDiv.className = 'alert alert-error';
+    eligibilityDiv.innerHTML = '⚠️ <strong>Lưu ý:</strong> Khoản trả hàng tháng chiếm ' +
+      Math.round(dtiRatio * 100) + '% thu nhập. Khuyến khích không quá 33% để đảm bảo khả năng trả nợ.';
+  } else if (amount < 1000000) {
+    eligibilityDiv.className = 'alert alert-error';
+    eligibilityDiv.innerHTML = '❌ Số tiền vay tối thiểu là 1,000,000 VND';
+  } else if (monthlyIncome < 5000000) {
+    eligibilityDiv.className = 'alert alert-warning';
+    eligibilityDiv.innerHTML = '⚠️ Thu nhập khuyến khích từ 5,000,000 VND trở lên';
+  } else {
+    eligibilityDiv.className = 'alert alert-success';
+    eligibilityDiv.innerHTML = '✅ <strong>Tuyệt vời!</strong> Hồ sơ của bạn đáp ứng các điều kiện cơ bản. ' +
+      'Khoản trả chỉ chiếm ' + Math.round(dtiRatio * 100) + '% thu nhập.';
+  }
+}
+
+// Add event listeners
+document.getElementById('amountInput').addEventListener('input', calculateLoan);
+document.getElementById('termSelect').addEventListener('change', calculateLoan);
+document.getElementById('monthlyIncomeInput').addEventListener('input', calculateLoan);
+
+// Initial calculation
+calculateLoan();
+
+// Form validation
+document.getElementById('loanForm').addEventListener('submit', function(e) {
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  const monthlyIncome = parseFloat(document.getElementById('monthlyIncomeInput').value);
+
+  if (amount < 1000000) {
+    alert('Số tiền vay tối thiểu là 1,000,000 VND');
+    e.preventDefault();
+    return;
+  }
+
+  if (monthlyIncome < 1000000) {
+    alert('Thu nhập hàng tháng tối thiểu là 1,000,000 VND');
+    e.preventDefault();
+    return;
+  }
+
+  if (!document.getElementById('agreementCheck').checked) {
+    alert('Vui lòng xác nhận đồng ý với điều khoản dịch vụ');
+    e.preventDefault();
+    return;
+  }
+
+  // Show loading state
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.textContent = '⏳ Đang xử lý...';
+  submitBtn.disabled = true;
+});
+</script>
+</body>
+</html>

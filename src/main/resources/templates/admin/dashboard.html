@@ -97,6 +97,15 @@
         <a class="tab" href="/admin/disbursement">Phòng giải ngân</a>
     </nav>
 
+    <!-- Admin info -->
+    <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 12px 20px; border-radius: 8px; margin: 16px 0; color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="font-weight: bold;">👑 Chế độ Quản trị viên</div>
+            <div style="font-size: 0.9em; opacity: 0.9;">Có thể truy cập tất cả các phòng và chức năng</div>
+        </div>
+        <a href="/logout" style="color: rgba(255,255,255,0.8); font-size: 0.9em; text-decoration: none;">Đăng xuất</a>
+    </div>
+
     <!-- Thống kê tổng quan -->
     <div class="stats-grid">
         <div class="stat-card submitted">
@@ -127,21 +136,33 @@
 
     <!-- Workflow diagram -->
     <div class="workflow-diagram">
-        <h3>📋 Quy trình xử lý hồ sơ</h3>
+        <h3>📋 Quy trình xử lý hồ sơ (3 phòng)</h3>
         <div style="text-align: center; margin-top: 16px;">
             <span class="flow-step">📝 Nộp hồ sơ</span>
             <span class="flow-arrow">→</span>
-            <span class="flow-step">📋 Tiếp nhận</span>
+            <span class="flow-step" style="background: #1e3a8a;">📋 Phòng Tiếp Nhận</span>
             <span class="flow-arrow">→</span>
-            <span class="flow-step">🔍 Thẩm định</span>
+            <span class="flow-step" style="background: #7c2d12;">🔍 Phòng Thẩm Định</span>
             <span class="flow-arrow">→</span>
-            <span class="flow-step">✅/❌ Quyết định</span>
-            <span class="flow-arrow">→</span>
-            <span class="flow-step">💰 Giải ngân</span>
+            <span class="flow-step" style="background: #14532d;">💰 Phòng Giải Ngân</span>
         </div>
-        <p style="margin-top: 16px; font-size: 0.9em; opacity: 0.8;">
-            Hồ sơ sẽ đi qua 3 phòng: <strong>Tiếp nhận</strong> → <strong>Thẩm định tín dụng</strong> → <strong>Giải ngân</strong>
-        </p>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; font-size: 0.9em;">
+            <div style="background: rgba(30, 58, 138, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #1e3a8a;">
+                <strong>1. Phòng Tiếp Nhận</strong><br>
+                <small style="opacity: 0.8;">Kiểm tra & tiếp nhận hồ sơ<br>
+                    ↓ Chuyển sang phòng thẩm định</small>
+            </div>
+            <div style="background: rgba(124, 45, 18, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #7c2d12;">
+                <strong>2. Phòng Thẩm Định</strong><br>
+                <small style="opacity: 0.8;">Thẩm định & quyết định<br>
+                    ↓ Chuyển sang phòng giải ngân</small>
+            </div>
+            <div style="background: rgba(20, 83, 45, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #14532d;">
+                <strong>3. Phòng Giải Ngân</strong><br>
+                <small style="opacity: 0.8;">Giải ngân & hoàn tất<br>
+                    ✅ Kết thúc quy trình</small>
+            </div>
+        </div>
     </div>
 
     <!-- Quick Actions -->

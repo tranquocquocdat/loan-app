@@ -1,0 +1,243 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <title>Hồ sơ vay của tôi</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .customer-header {
+            background: linear-gradient(135deg, #22d3ee, #0891b2);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 24px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .app-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 8px 0;
+            transition: all 0.2s;
+        }
+        .app-card:hover {
+            border-color: #22d3ee;
+            box-shadow: 0 4px 12px rgba(34, 211, 238, 0.1);
+        }
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .app-amount {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #22d3ee;
+        }
+        .app-status {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .progress-bar {
+            background: #374151;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22d3ee, #0891b2);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Customer Header -->
+    <div class="customer-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0;">👤 Xin chào, <span th:text="${username}"></span>!</h1>
+                <p style="margin: 8px 0 0 0; opacity: 0.9;">Quản lý hồ sơ vay tín dụng của bạn</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5em; font-weight: bold;" th:text="${totalApplications}">0</div>
+                <div style="opacity: 0.8; font-size: 0.9em;">Tổng hồ sơ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <a href="/apply" class="btn btn-primary">📝 Nộp hồ sơ mới</a>
+        <a href="/my-applications" class="btn btn-outline">🔄 Làm mới</a>
+        <a href="/logout" class="btn btn-outline">🚪 Đăng xuất</a>
+    </div>
+
+    <!-- Notifications -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card" style="border-left: 4px solid #0891b2;">
+            <div class="stat-number" style="color: #0891b2;" th:text="${submitted}">0</div>
+            <div class="stat-label">Chờ xử lý</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #ca8a04;">
+            <div class="stat-number" style="color: #ca8a04;" th:text="${underReview}">0</div>
+            <div class="stat-label">Đang thẩm định</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #059669;">
+            <div class="stat-number" style="color: #059669;" th:text="${approved}">0</div>
+            <div class="stat-label">Đã phê duyệt</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #16a34a;">
+            <div class="stat-number" style="color: #16a34a;" th:text="${disbursed}">0</div>
+            <div class="stat-label">Đã giải ngân</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #dc2626;" th:if="${rejected > 0}">
+            <div class="stat-number" style="color: #dc2626;" th:text="${rejected}">0</div>
+            <div class="stat-label">Đã từ chối</div>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <h2>📋 Hồ sơ vay của bạn</h2>
+
+    <div th:if="${#lists.isEmpty(apps)}" style="text-align: center; padding: 40px; opacity: 0.7;">
+        <div style="font-size: 3em; margin-bottom: 16px;">📭</div>
+        <h3>Chưa có hồ sơ vay nào</h3>
+        <p>Nhấn "Nộp hồ sơ mới" để bắt đầu đăng ký vay tín dụng</p>
+        <a href="/apply" class="btn btn-primary" style="margin-top: 16px;">📝 Nộp hồ sơ đầu tiên</a>
+    </div>
+
+    <div th:each="app : ${apps}" class="app-card">
+        <div class="app-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong>Hồ sơ #<span th:text="${app.id}"></span></strong>
+                    <span class="badge" th:text="${app.status}" th:class="'badge ' + ${app.status.name()}"></span>
+                </div>
+                <div class="app-amount" th:text="${#numbers.formatInteger(app.amount, 3, 'POINT')} + ' VND'"></div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.9em; opacity: 0.7;" th:text="${app.termMonths} + ' tháng'"></div>
+                <div style="font-size: 0.8em; opacity: 0.6;" th:text="${#temporals.format(app.submittedAt, 'dd/MM/yyyy')}"></div>
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar">
+            <div class="progress-fill" th:style="'width: ' +
+                (${app.status.name() == 'SUBMITTED'} ? '20%' :
+                 ${app.status.name() == 'UNDER_REVIEW'} ? '40%' :
+                 ${app.status.name() == 'ASSESSED'} ? '60%' :
+                 ${app.status.name() == 'APPROVED'} ? '80%' :
+                 ${app.status.name() == 'DISBURSED'} ? '100%' : '0%')"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <div class="app-status">
+                <span th:text="${app.status.name() == 'SUBMITTED' ? '⏳ Đã nộp hồ sơ' :
+                               (app.status.name() == 'UNDER_REVIEW' ? '🔍 Đang thẩm định' :
+                               (app.status.name() == 'ASSESSED' ? '⚖️ Chờ quyết định' :
+                               (app.status.name() == 'APPROVED' ? '✅ Đã phê duyệt' :
+                               (app.status.name() == 'DISBURSED' ? '💰 Đã giải ngân' :
+                               (app.status.name() == 'REJECTED' ? '❌ Đã từ chối' : 'Không xác định')))))"></span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a th:href="@{'/customer/app/' + ${app.id}}" class="btn btn-outline btn-sm">👁️ Chi tiết</a>
+                <a th:if="${app.status.name() == 'APPROVED' or app.status.name() == 'DISBURSED'}"
+                   th:href="@{'/admin/' + ${app.id} + '/contract'}" class="btn btn-outline btn-sm">📄 Hợp đồng</a>
+            </div>
+        </div>
+
+        <!-- Additional info for certain statuses -->
+        <div th:if="${app.status.name() == 'REJECTED' and app.rejectionReason != null}"
+             style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
+            <small><strong>Lý do từ chối:</strong> <span th:text="${app.rejectionReason}"></span></small>
+        </div>
+
+        <div th:if="${app.status.name() == 'APPROVED'}"
+             style="margin-top: 8px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border-left: 3px solid #22c55e;">
+            <small>🎉 <strong>Chúc mừng!</strong> Hồ sơ đã được phê duyệt. Đang chờ giải ngân.</small>
+        </div>
+
+        <div th:if="${app.status.name() == 'DISBURSED'}"
+             style="margin-top: 8px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border-left: 3px solid #16a34a;">
+            <small>✨ <strong>Hoàn tất!</strong> Khoản vay đã được giải ngân vào ngày <span th:text="${#temporals.format(app.disbursedAt, 'dd/MM/yyyy')}"></span></small>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div style="margin-top: 40px; padding: 20px; background: #0f172a; border-radius: 12px; border: 1px solid #374151;">
+        <h3>❓ Cần hỗ trợ?</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+            <div>
+                <strong>📞 Hotline:</strong><br>
+                <span style="color: #22d3ee;">1900-123-456</span>
+            </div>
+            <div>
+                <strong>📧 Email:</strong><br>
+                <span style="color: #22d3ee;">support@bank.com</span>
+            </div>
+            <div>
+                <strong>🕐 Giờ làm việc:</strong><br>
+                <span>T2-T6: 8:00-17:00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto refresh every 60 seconds
+setTimeout(() => location.reload(), 60000);
+
+// Add click animation to app cards
+document.querySelectorAll('.app-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'A') {
+            const detailBtn = card.querySelector('a[href*="/customer/app/"]');
+            if (detailBtn) {
+                detailBtn.click();
+            }
+        }
+    });
+
+    card.style.cursor = 'pointer';
+});
+</script>
+</body>
+</html>
