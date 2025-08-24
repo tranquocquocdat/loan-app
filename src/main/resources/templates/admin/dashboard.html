@@ -1,0 +1,206 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <title>Dashboard - Hệ thống quản lý vay tín dụng</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(15px, -15px);
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin: 8px 0 0 0;
+        }
+        .submitted { background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); }
+        .under-review { background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%); }
+        .assessed { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+        .approved { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+        .rejected { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .disbursed { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+
+        .workflow-diagram {
+            margin: 30px 0;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        .flow-step {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 4px;
+            background: #1f2937;
+            border-radius: 20px;
+            border: 1px solid #4b5563;
+        }
+        .flow-arrow {
+            color: #22d3ee;
+            margin: 0 8px;
+            font-weight: bold;
+        }
+        .quick-actions {
+            margin: 20px 0;
+        }
+        .action-btn {
+            display: inline-block;
+            margin: 4px 8px 4px 0;
+            padding: 10px 16px;
+            background: #374151;
+            color: #e5e7eb;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .action-btn:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏦 Dashboard - Quản lý vay tín dụng</h1>
+
+    <nav class="tabs">
+        <a class="tab active" href="/admin/dashboard">Dashboard</a>
+        <a class="tab" href="/admin/intake">Phòng tiếp nhận</a>
+        <a class="tab" href="/admin/assessment">Phòng thẩm định</a>
+        <a class="tab" href="/admin/disbursement">Phòng giải ngân</a>
+    </nav>
+
+    <!-- Thống kê tổng quan -->
+    <div class="stats-grid">
+        <div class="stat-card submitted">
+            <div class="stat-number" th:text="${submitted}">0</div>
+            <div class="stat-label">Chờ tiếp nhận</div>
+        </div>
+        <div class="stat-card under-review">
+            <div class="stat-number" th:text="${underReview}">0</div>
+            <div class="stat-label">Đang thẩm định</div>
+        </div>
+        <div class="stat-card assessed">
+            <div class="stat-number" th:text="${assessed}">0</div>
+            <div class="stat-label">Chờ quyết định</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-number" th:text="${approved}">0</div>
+            <div class="stat-label">Đã phê duyệt</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-number" th:text="${rejected}">0</div>
+            <div class="stat-label">Đã từ chối</div>
+        </div>
+        <div class="stat-card disbursed">
+            <div class="stat-number" th:text="${disbursed}">0</div>
+            <div class="stat-label">Đã giải ngân</div>
+        </div>
+    </div>
+
+    <!-- Workflow diagram -->
+    <div class="workflow-diagram">
+        <h3>📋 Quy trình xử lý hồ sơ</h3>
+        <div style="text-align: center; margin-top: 16px;">
+            <span class="flow-step">📝 Nộp hồ sơ</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">📋 Tiếp nhận</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">🔍 Thẩm định</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">✅/❌ Quyết định</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">💰 Giải ngân</span>
+        </div>
+        <p style="margin-top: 16px; font-size: 0.9em; opacity: 0.8;">
+            Hồ sơ sẽ đi qua 3 phòng: <strong>Tiếp nhận</strong> → <strong>Thẩm định tín dụng</strong> → <strong>Giải ngân</strong>
+        </p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3>🚀 Thao tác nhanh</h3>
+        <a href="/admin/intake" class="action-btn" th:if="${submitted > 0}">
+            📥 Tiếp nhận hồ sơ (<span th:text="${submitted}"></span>)
+        </a>
+        <a href="/admin/assessment" class="action-btn" th:if="${underReview > 0}">
+            🔍 Thẩm định hồ sơ (<span th:text="${underReview}"></span>)
+        </a>
+        <a href="/admin/assessment" class="action-btn" th:if="${assessed > 0}">
+            ⚖️ Quyết định phê duyệt (<span th:text="${assessed}"></span>)
+        </a>
+        <a href="/admin/disbursement" class="action-btn" th:if="${approved > 0}">
+            💰 Giải ngân (<span th:text="${approved}"></span>)
+        </a>
+        <a href="/" class="action-btn">🏠 Về trang chủ</a>
+        <a href="/login?logout" class="action-btn">🚪 Đăng xuất</a>
+    </div>
+
+    <!-- Recent Activity (giả lập) -->
+    <div style="margin-top: 30px;">
+        <h3>📈 Hoạt động gần đây</h3>
+        <div class="card">
+            <p>🎯 <strong>Mục tiêu hôm nay:</strong></p>
+            <ul>
+                <li th:if="${submitted > 0}">Tiếp nhận <span th:text="${submitted}"></span> hồ sơ mới</li>
+                <li th:if="${underReview > 0}">Hoàn tất thẩm định <span th:text="${underReview}"></span> hồ sơ</li>
+                <li th:if="${approved > 0}">Giải ngân <span th:text="${approved}"></span> khoản vay</li>
+                <li th:if="${submitted == 0 && underReview == 0 && approved == 0}">Tất cả hồ sơ đã được xử lý ✨</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div style="margin-top: 20px; padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #22d3ee;">
+        <small style="opacity: 0.7;">
+            📊 Hệ thống quản lý vay tín dụng v0.0.4 |
+            🔗 <a href="/admin/intake" class="link">Phòng tiếp nhận</a> |
+            🔗 <a href="/admin/assessment" class="link">Phòng thẩm định</a> |
+            🔗 <a href="/admin/disbursement" class="link">Phòng giải ngân</a>
+        </small>
+    </div>
+</div>
+
+<script>
+// Auto refresh every 30 seconds
+setTimeout(() => location.reload(), 30000);
+
+// Add some interactive feedback
+document.querySelectorAll('.stat-card').forEach(card => {
+    card.addEventListener('click', () => {
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            card.style.transform = 'scale(1)';
+        }, 150);
+    });
+});
+</script>
+</body>
+</html>

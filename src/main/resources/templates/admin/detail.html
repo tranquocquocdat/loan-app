@@ -2,65 +2,399 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
-    <title>Chi tiết hồ sơ #[[${app.id}]]</title>
+    <title>Chi tiết hồ sơ #[[${app.id}]] - [[${section == 'intake' ? 'Phòng tiếp nhận' : (section == 'assessment' ? 'Phòng thẩm định' : 'Phòng giải ngân')}]]</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .status-timeline {
+            margin: 20px 0;
+            padding: 16px;
+            background: #0f172a;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        .timeline-step {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .timeline-step.completed {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 3px solid #22c55e;
+        }
+        .timeline-step.current {
+            background: rgba(34, 211, 238, 0.1);
+            border-left: 3px solid #22d3ee;
+            animation: pulse 2s infinite;
+        }
+        .timeline-step.rejected {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid #ef4444;
+        }
+        .timeline-icon {
+            margin-right: 12px;
+            font-size: 1.2em;
+        }
+        .timeline-content {
+            flex: 1;
+        }
+        .timeline-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .action-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #111827;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        .form-group {
+            margin: 12px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #4b5563;
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            color: #fbbf24;
+        }
+        .info-box {
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid #22d3ee;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            color: #22d3ee;
+        }
+        .customer-info, .loan-info {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #374151;
+        }
+        .info-label {
+            font-weight: 500;
+            color: #9ca3af;
+        }
+        .info-value {
+            color: #e5e7eb;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
-    <h1>Hồ sơ #<span th:text="${app.id}"></span> — <span class="badge" th:text="${app.status}"></span></h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+            <h1 th:text="${section == 'intake' ? '📥 Phòng Tiếp Nhận' : (section == 'assessment' ? '🔍 Phòng Thẩm Định Tín Dụng' : '💰 Phòng Giải Ngân')}">Phòng</h1>
+            <div style="opacity: 0.7; margin-top: -8px;">Hồ sơ #<span th:text="${app.id}"></span></div>
+        </div>
+        <span class="badge" th:text="${app.status}" th:class="'badge ' + ${app.status.name()}"></span>
+    </div>
 
     <nav class="tabs">
-        <a class="tab" href="/admin/intake" th:classappend="${section=='intake'} ? ' active'">Phòng tiếp nhận</a>
-        <a class="tab" href="/admin/assessment" th:classappend="${section=='assessment'} ? ' active'">Phòng thẩm định</a>
-        <a class="tab" href="/admin/disbursement" th:classappend="${section=='disbursement'} ? ' active'">Phòng giải ngân</a>
+        <a class="tab" href="/admin/dashboard">Dashboard</a>
+        <a class="tab" href="/admin/intake" th:class="${section=='intake'} ? 'tab active' : 'tab'">Phòng tiếp nhận</a>
+        <a class="tab" href="/admin/assessment" th:class="${section=='assessment'} ? 'tab active' : 'tab'">Phòng thẩm định</a>
+        <a class="tab" href="/admin/disbursement" th:class="${section=='disbursement'} ? 'tab active' : 'tab'">Phòng giải ngân</a>
     </nav>
 
-    <div class="grid2">
-        <div class="card">
-            <h3>Thông tin khách hàng</h3>
-            <p><b>Họ tên:</b> <span th:text="${app.customer.fullName}"></span></p>
-            <p><b>Email:</b> <span th:text="${app.customer.email}"></span></p>
-            <p><b>Điện thoại:</b> <span th:text="${app.customer.phone}"></span></p>
+    <!-- Timeline trạng thái -->
+    <div class="status-timeline">
+        <h3>📋 Tiến trình xử lý</h3>
+
+        <div class="timeline-step completed">
+            <div class="timeline-icon">📝</div>
+            <div class="timeline-content">
+                <strong>Nộp hồ sơ</strong>
+                <div class="timeline-time" th:text="${#temporals.format(app.submittedAt, 'dd/MM/yyyy HH:mm')}"></div>
+            </div>
         </div>
-        <div class="card">
-            <h3>Chi tiết khoản vay</h3>
-            <p><b>Số tiền:</b> <span th:text="${#numbers.formatInteger(app.amount,3,'POINT')}"></span></p>
-            <p><b>Kỳ hạn (tháng):</b> <span th:text="${app.termMonths}"></span></p>
-            <p><b>Mục đích:</b> <span th:text="${app.purpose}"></span></p>
-            <p><b>Thu nhập/tháng:</b> <span th:text="${#numbers.formatInteger(app.monthlyIncome,3,'POINT')}"></span></p>
+
+        <div th:class="'timeline-step ' + (${app.status.name() == 'SUBMITTED'} ? 'current' : (${app.reviewedAt != null} ? 'completed' : ''))">
+            <div class="timeline-icon">📋</div>
+            <div class="timeline-content">
+                <strong>Tiếp nhận hồ sơ</strong>
+                <div class="timeline-time" th:if="${app.reviewedAt}"
+                     th:text="${#temporals.format(app.reviewedAt, 'dd/MM/yyyy HH:mm')}"></div>
+            </div>
+        </div>
+
+        <div th:class="'timeline-step ' + (${app.status.name() == 'UNDER_REVIEW'} ? 'current' : (${app.assessedAt != null} ? 'completed' : ''))">
+            <div class="timeline-icon">🔍</div>
+            <div class="timeline-content">
+                <strong>Thẩm định tín dụng</strong>
+                <div class="timeline-time" th:if="${app.assessedAt}"
+                     th:text="${#temporals.format(app.assessedAt, 'dd/MM/yyyy HH:mm')}"></div>
+            </div>
+        </div>
+
+        <div th:class="'timeline-step ' + (${app.status.name() == 'ASSESSED'} ? 'current' : (${app.approvedAt != null} ? 'completed' : (${app.rejectedAt != null} ? 'rejected' : '')))">
+            <div class="timeline-icon" th:text="${app.status.name() == 'REJECTED'} ? '❌' : '⚖️'"></div>
+            <div class="timeline-content">
+                <strong>Quyết định phê duyệt</strong>
+                <div class="timeline-time" th:if="${app.approvedAt}"
+                     th:text="${#temporals.format(app.approvedAt, 'dd/MM/yyyy HH:mm')}"></div>
+                <div class="timeline-time" th:if="${app.rejectedAt}"
+                     th:text="${#temporals.format(app.rejectedAt, 'dd/MM/yyyy HH:mm')}"></div>
+            </div>
+        </div>
+
+        <div th:if="${app.status.name() != 'REJECTED'}"
+             th:class="'timeline-step ' + (${app.status.name() == 'APPROVED'} ? 'current' : (${app.disbursedAt != null} ? 'completed' : ''))">
+            <div class="timeline-icon">💰</div>
+            <div class="timeline-content">
+                <strong>Giải ngân</strong>
+                <div class="timeline-time" th:if="${app.disbursedAt}"
+                     th:text="${#temporals.format(app.disbursedAt, 'dd/MM/yyyy HH:mm')}"></div>
+            </div>
         </div>
     </div>
 
+    <!-- Thông báo -->
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
     <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
 
-    <h3>Hành động</h3>
-    <div class="actions">
-        <!-- 1) Chi tiết: đang ở chi tiết rồi -->
+    <!-- Thông tin hồ sơ -->
+    <div class="grid2">
+        <div class="customer-info">
+            <h3>👤 Thông tin khách hàng</h3>
+            <div class="info-row">
+                <span class="info-label">Họ tên:</span>
+                <span class="info-value" th:text="${app.customer.fullName}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value" th:text="${app.customer.email}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Điện thoại:</span>
+                <span class="info-value" th:text="${app.customer.phone}"></span>
+            </div>
+        </div>
 
-        <!-- 2) Chuyển đến phòng kế bên -->
-        <form th:action="@{'/admin/' + ${app.id} + '/next'}" method="post" style="display:inline">
-            <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section} + '/app/' + ${app.id}}"/>
-            <button class="btn"
-                    th:disabled="${
-                (section=='intake'       and app.status.name()!='SUBMITTED') or
-                (section=='assessment'   and !(app.status.name()=='UNDER_REVIEW' or app.status.name()=='ASSESSED')) or
-                (section=='disbursement' and app.status.name()!='APPROVED')
-              }">Chuyển đến phòng kế bên</button>
-        </form>
-
-        <!-- 3) Từ chối (lý do) -->
-        <form th:action="@{'/admin/' + ${app.id} + '/reject'}" method="post" style="display:inline;margin-left:6px">
-            <input class="input" name="reason" placeholder="Lý do từ chối"
-                   th:disabled="${app.status.name()=='DISBURSED'}" required/>
-            <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section} + '/app/' + ${app.id}}"/>
-            <button class="btn btn-danger" th:disabled="${app.status.name()=='DISBURSED'}">Từ chối</button>
-        </form>
+        <div class="loan-info">
+            <h3>💰 Chi tiết khoản vay</h3>
+            <div class="info-row">
+                <span class="info-label">Số tiền:</span>
+                <span class="info-value" th:text="${#numbers.formatInteger(app.amount,3,'POINT')} + ' VND'"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Kỳ hạn:</span>
+                <span class="info-value" th:text="${app.termMonths} + ' tháng'"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Mục đích:</span>
+                <span class="info-value" th:text="${app.purpose != null ? app.purpose : 'Không có'}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Thu nhập/tháng:</span>
+                <span class="info-value" th:text="${#numbers.formatInteger(app.monthlyIncome,3,'POINT')} + ' VND'"></span>
+            </div>
+        </div>
     </div>
 
-    <div style="margin-top:16px">
-        <a class="link" th:href="@{'/admin/' + ${section}}">← Quay lại danh sách</a>
+    <!-- Ghi chú và thông tin bổ sung -->
+    <div th:if="${app.assessmentNote != null or app.approvalNote != null or app.rejectionReason != null}">
+        <div class="customer-info">
+            <h3>📝 Ghi chú xử lý</h3>
+            <div th:if="${app.assessmentNote != null}" class="info-row">
+                <span class="info-label">Ghi chú thẩm định:</span>
+                <span class="info-value" th:text="${app.assessmentNote}"></span>
+            </div>
+            <div th:if="${app.approvalNote != null}" class="info-row">
+                <span class="info-label">Ghi chú phê duyệt:</span>
+                <span class="info-value" th:text="${app.approvalNote}"></span>
+            </div>
+            <div th:if="${app.rejectionReason != null}" class="info-row">
+                <span class="info-label">Lý do từ chối:</span>
+                <span class="info-value" style="color: #ef4444;" th:text="${app.rejectionReason}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thao tác theo phòng -->
+    <div class="action-section">
+        <h3>🎯 <span th:text="${section == 'intake' ? 'Phòng Tiếp Nhận' : (section == 'assessment' ? 'Phòng Thẩm Định Tín Dụng' : 'Phòng Giải Ngân')}"></span></h3>
+
+        <!-- PHÒNG TIẾP NHẬN -->
+        <div th:if="${section=='intake'}">
+            <div th:if="${!canAccept and app.status.name()=='SUBMITTED'}" class="warning-box">
+                ⚠️ Hồ sơ chưa đầy đủ thông tin. Cần bổ sung các trường bắt buộc trước khi tiếp nhận.
+            </div>
+
+            <form th:if="${app.status.name()=='SUBMITTED'}"
+                  th:action="@{'/admin/' + ${app.id} + '/intake/accept'}" method="post">
+                <input type="hidden" name="redirectTo" th:value="@{'/admin/intake/app/' + ${app.id}}"/>
+                <button class="btn btn-primary" th:disabled="${!canAccept}" type="submit">
+                    📋 Tiếp nhận hồ sơ (chuyển sang phòng thẩm định)
+                </button>
+            </form>
+
+            <div th:if="${app.status.name() != 'SUBMITTED'}" class="info-box">
+                ✅ Hồ sơ đã được tiếp nhận và chuyển qua phòng thẩm định.
+                <div style="margin-top: 8px;">
+                    <a class="btn btn-outline" th:href="@{'/admin/assessment/app/' + ${app.id}}">
+                        🔍 Xem tại phòng thẩm định
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHÒNG THẨM ĐỊNH -->
+        <div th:if="${section=='assessment'}">
+            <div th:if="${app.status.name()=='UNDER_REVIEW'}">
+                <div class="info-box">
+                    🔍 Hồ sơ đang trong quá trình thẩm định. Vui lòng thực hiện các bước sau:
+                </div>
+
+                <form th:action="@{'/admin/' + ${app.id} + '/assessment/check-blacklist'}" method="post" style="margin: 12px 0;">
+                    <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
+                    <button class="btn btn-warning" type="submit">🚨 Kiểm tra Blacklist</button>
+                </form>
+
+                <form th:action="@{'/admin/' + ${app.id} + '/assessment/complete'}" method="post">
+                    <div class="form-group">
+                        <label>Ghi chú thẩm định:</label>
+                        <textarea name="note" rows="3" placeholder="Nhập kết quả thẩm định và đánh giá..."></textarea>
+                    </div>
+                    <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
+                    <button class="btn btn-primary" type="submit">✅ Hoàn tất thẩm định</button>
+                </form>
+            </div>
+
+            <div th:if="${app.status.name()=='ASSESSED'}">
+                <div class="info-box">
+                    ⚖️ Hồ sơ đã hoàn tất thẩm định. Vui lòng đưa ra quyết định:
+                </div>
+
+                <form th:action="@{'/admin/' + ${app.id} + '/approve'}" method="post" style="margin: 12px 0;">
+                    <div class="form-group">
+                        <input name="note" placeholder="Ghi chú phê duyệt (tùy chọn)" style="width: 300px;"/>
+                    </div>
+                    <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
+                    <button class="btn btn-success" type="submit">✅ Phê duyệt (chuyển sang phòng giải ngân)</button>
+                </form>
+
+                <form th:action="@{'/admin/' + ${app.id} + '/reject'}" method="post" style="margin-top: 12px;">
+                    <div class="form-group">
+                        <label>Lý do từ chối:</label>
+                        <textarea name="reason" rows="2" placeholder="Nhập lý do từ chối..." required></textarea>
+                    </div>
+                    <input type="hidden" name="redirectTo" th:value="@{'/admin/assessment/app/' + ${app.id}}"/>
+                    <button class="btn btn-danger" type="submit">❌ Từ chối</button>
+                </form>
+            </div>
+
+            <div th:if="${app.status.name() == 'REJECTED'}" class="warning-box">
+                ❌ Hồ sơ đã bị từ chối. Không thể thực hiện thêm thao tác.
+            </div>
+
+            <div th:if="${app.status.name() == 'APPROVED'}" class="info-box">
+                ✅ Hồ sơ đã được phê duyệt và chuyển qua phòng giải ngân.
+                <div style="margin-top: 8px;">
+                    <a class="btn btn-outline" th:href="@{'/admin/disbursement/app/' + ${app.id}}">
+                        💰 Xem tại phòng giải ngân
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHÒNG GIẢI NGÂN -->
+        <div th:if="${section=='disbursement'}">
+            <div th:if="${app.status.name()=='APPROVED'}">
+                <div class="info-box">
+                    💰 Hồ sơ đã được phê duyệt và sẵn sàng giải ngân.
+                </div>
+
+                <form th:action="@{'/admin/' + ${app.id} + '/disburse'}" method="post">
+                    <input type="hidden" name="redirectTo" th:value="@{'/admin/disbursement/app/' + ${app.id}}"/>
+                    <button class="btn btn-warning" type="submit">💰 Thực hiện giải ngân</button>
+                </form>
+            </div>
+
+            <div th:if="${app.status.name()=='DISBURSED'}" class="info-box">
+                ✅ Hồ sơ đã được giải ngân thành công! Quy trình hoàn tất.
+            </div>
+
+            <div th:if="${app.status.name()=='APPROVED' or app.status.name()=='DISBURSED'}" style="margin-top: 16px;">
+                <a class="btn btn-outline" th:href="@{'/admin/' + ${app.id} + '/contract'}">📄 Xem hợp đồng</a>
+                <a class="btn btn-outline" th:href="@{'/status/' + ${app.id}}">👁️ Xem như khách hàng</a>
+            </div>
+
+            <!-- Không có nút chuyển phòng vì đây là phòng cuối cùng -->
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #374151; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <a class="link" th:href="@{'/admin/' + ${section}}">← Quay lại danh sách</a>
+            <span style="margin: 0 16px;">•</span>
+            <a class="link" href="/admin/dashboard">🏠 Dashboard</a>
+        </div>
+
+        <!-- Navigation buttons between departments -->
+        <div style="display: flex; gap: 8px;">
+            <!-- Phòng tiếp nhận -> Phòng thẩm định -->
+            <a th:if="${section == 'intake' and (app.status.name() == 'UNDER_REVIEW' or app.status.name() == 'ASSESSED' or app.status.name() == 'APPROVED' or app.status.name() == 'DISBURSED')}"
+               class="btn btn-outline"
+               th:href="@{'/admin/assessment/app/' + ${app.id}}">
+                🔍 Đến phòng thẩm định
+            </a>
+
+            <!-- Phòng thẩm định -> Phòng giải ngân -->
+            <a th:if="${section == 'assessment' and (app.status.name() == 'APPROVED' or app.status.name() == 'DISBURSED')}"
+               class="btn btn-outline"
+               th:href="@{'/admin/disbursement/app/' + ${app.id}}">
+                💰 Đến phòng giải ngân
+            </a>
+        </div>
     </div>
 </div>
+
+<script>
+// Auto refresh every 30 seconds for status updates
+setTimeout(() => {
+    if (document.querySelector('.timeline-step.current')) {
+        location.reload();
+    }
+}, 30000);
+</script>
 </body>
 </html>

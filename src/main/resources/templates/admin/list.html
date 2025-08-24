@@ -2,67 +2,173 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8"/>
-  <title>Quản trị hồ sơ</title>
+  <title th:text="${section == 'intake' ? 'Phòng tiếp nhận' : (section == 'assessment' ? 'Phòng thẩm định tín dụng' : 'Phòng giải ngân')}">Quản trị hồ sơ</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="container">
-  <h1>Quản trị hồ sơ (3 phòng)</h1>
+  <!-- Dynamic title based on section -->
+  <h1 th:text="${section == 'intake' ? '📥 Phòng Tiếp Nhận' : (section == 'assessment' ? '🔍 Phòng Thẩm Định Tín Dụng' : '💰 Phòng Giải Ngân')}">
+    Quản trị hồ sơ
+  </h1>
 
   <nav class="tabs">
-    <a class="tab" th:classappend="${section=='intake'} ? ' active'" href="/admin/intake">Phòng tiếp nhận</a>
-    <a class="tab" th:classappend="${section=='assessment'} ? ' active'" href="/admin/assessment">Phòng thẩm định</a>
-    <a class="tab" th:classappend="${section=='disbursement'} ? ' active'" href="/admin/disbursement">Phòng giải ngân</a>
+    <a class="tab" href="/admin/dashboard">Dashboard</a>
+    <a class="tab" th:class="${section=='intake'} ? 'tab active' : 'tab'" href="/admin/intake">Phòng tiếp nhận</a>
+    <a class="tab" th:class="${section=='assessment'} ? 'tab active' : 'tab'" href="/admin/assessment">Phòng thẩm định</a>
+    <a class="tab" th:class="${section=='disbursement'} ? 'tab active' : 'tab'" href="/admin/disbursement">Phòng giải ngân</a>
   </nav>
+
+  <!-- Department description -->
+  <div style="background: #0f172a; padding: 12px 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid var(--accent);">
+    <div th:if="${section == 'intake'}">
+      <strong>📋 Nhiệm vụ:</strong> Tiếp nhận và kiểm tra tính đầy đủ của hồ sơ vay tín dụng
+      <br><small style="opacity: 0.8;">Hồ sơ ở trạng thái: <span class="badge SUBMITTED">SUBMITTED</span></small>
+    </div>
+    <div th:if="${section == 'assessment'}">
+      <strong>🔍 Nhiệm vụ:</strong> Thẩm định tín dụng, kiểm tra blacklist và đưa ra quyết định phê duyệt
+      <br><small style="opacity: 0.8;">Hồ sơ ở trạng thái: <span class="badge UNDER_REVIEW">UNDER_REVIEW</span>, <span class="badge ASSESSED">ASSESSED</span></small>
+    </div>
+    <div th:if="${section == 'disbursement'}">
+      <strong>💰 Nhiệm vụ:</strong> Thực hiện giải ngân cho các khoản vay đã được phê duyệt
+      <br><small style="opacity: 0.8;">Hồ sơ ở trạng thái: <span class="badge APPROVED">APPROVED</span>, <span class="badge DISBURSED">DISBURSED</span></small>
+    </div>
+  </div>
 
   <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
   <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
 
+  <!-- Statistics for current department -->
+  <div style="display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap;">
+    <div style="background: #1f2937; padding: 12px 16px; border-radius: 8px; flex: 1; min-width: 200px;">
+      <div style="font-size: 1.5em; font-weight: bold; color: var(--accent);" th:text="${#lists.size(apps)}">0</div>
+      <div style="font-size: 0.9em; opacity: 0.8;">
+        <span th:if="${section == 'intake'}">Hồ sơ chờ tiếp nhận</span>
+        <span th:if="${section == 'assessment'}">Hồ sơ cần xử lý</span>
+        <span th:if="${section == 'disbursement'}">Hồ sơ cần giải ngân</span>
+      </div>
+    </div>
+
+    <div th:if="${#lists.size(apps) > 0}" style="background: #1f2937; padding: 12px 16px; border-radius: 8px; flex: 1; min-width: 200px;">
+      <div style="font-size: 1.2em; font-weight: bold; color: #f59e0b;">🎯 Hành động tiếp theo</div>
+      <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;">
+        <span th:if="${section == 'intake'}">Kiểm tra và tiếp nhận hồ sơ</span>
+        <span th:if="${section == 'assessment'}">Thẩm định và đưa ra quyết định</span>
+        <span th:if="${section == 'disbursement'}">Thực hiện giải ngân</span>
+      </div>
+    </div>
+  </div>
+
   <table>
     <thead>
     <tr>
-      <th>ID</th><th>KH</th><th>Số tiền</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Hành động</th>
+      <th>ID</th><th>Khách hàng</th><th>Số tiền</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Hành động</th>
     </tr>
     </thead>
     <tbody>
     <tr th:if="${#lists.isEmpty(apps)}">
-      <td colspan="6" style="text-align:center;opacity:.7;padding:24px">Không có hồ sơ trong mục này.</td>
+      <td colspan="6" style="text-align:center;opacity:.7;padding:24px;">
+        <div style="font-size: 1.2em; margin-bottom: 8px;">
+          <span th:if="${section == 'intake'}">📭 Không có hồ sơ nào chờ tiếp nhận</span>
+          <span th:if="${section == 'assessment'}">📭 Không có hồ sơ nào cần thẩm định</span>
+          <span th:if="${section == 'disbursement'}">📭 Không có hồ sơ nào cần giải ngân</span>
+        </div>
+        <small>
+          <span th:if="${section == 'intake'}">Hồ sơ mới sẽ hiển thị tại đây khi khách hàng nộp đơn</span>
+          <span th:if="${section == 'assessment'}">Hồ sơ sẽ chuyển đến đây sau khi được tiếp nhận</span>
+          <span th:if="${section == 'disbursement'}">Hồ sơ sẽ chuyển đến đây sau khi được phê duyệt</span>
+        </small>
+      </td>
     </tr>
 
     <tr th:each="a : ${apps}">
-      <td th:text="${a.id}"></td>
-      <td th:text="${a.customer.fullName}"></td>
-      <td th:text="${#numbers.formatInteger(a.amount,3,'POINT')}"></td>
-      <td th:text="${a.termMonths}"></td>
-      <td><span class="badge" th:text="${a.status}"></span></td>
+      <td>
+        <strong th:text="${a.id}"></strong>
+        <div style="font-size: 0.8em; opacity: 0.7;">
+          #<span th:text="${a.id}"></span>
+        </div>
+      </td>
+      <td>
+        <div th:text="${a.customer.fullName}" style="font-weight: 600;"></div>
+        <div style="font-size: 0.8em; opacity: 0.7;" th:text="${a.customer.phone}"></div>
+      </td>
+      <td>
+        <div th:text="${#numbers.formatInteger(a.amount,3,'POINT')}" style="font-weight: 600; color: var(--accent);"></div>
+        <div style="font-size: 0.8em; opacity: 0.7;">VND</div>
+      </td>
+      <td>
+        <div th:text="${a.termMonths}" style="font-weight: 600;"></div>
+        <div style="font-size: 0.8em; opacity: 0.7;">tháng</div>
+      </td>
+      <td>
+        <span class="badge" th:text="${a.status}" th:class="'badge ' + ${a.status.name()}"></span>
+        <div style="font-size: 0.8em; opacity: 0.7; margin-top: 4px;">
+          <span th:text="${#temporals.format(a.submittedAt, 'dd/MM HH:mm')}"></span>
+        </div>
+      </td>
       <td class="actions">
-        <!-- 1) Chi tiết -->
+        <!-- Nút Chi tiết theo phòng hiện tại -->
         <a class="btn btn-outline"
-           th:href="@{'/admin/' + ${section} + '/app/' + ${a.id}}">Chi tiết</a>
+           th:href="@{'/admin/' + ${section} + '/app/' + ${a.id}}"
+           style="margin-right: 8px;">
+          📋 Chi tiết
+        </a>
 
-        <!-- 2) Chuyển đến phòng kế bên -->
-        <form th:action="@{'/admin/' + ${a.id} + '/next'}" method="post" style="display:inline;margin-left:6px">
-          <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section}}"/>
-          <!-- Enable rule theo tab -->
-          <button class="btn"
-                  th:disabled="${
-                    (section=='intake'       and a.status.name()!='SUBMITTED') or
-                    (section=='assessment'   and !(a.status.name()=='UNDER_REVIEW' or a.status.name()=='ASSESSED')) or
-                    (section=='disbursement' and a.status.name()!='APPROVED')
-                  }">Chuyển đến phòng kế bên</button>
-        </form>
+        <!-- Quick actions based on status and department -->
+        <div th:if="${section == 'intake' and a.status.name() == 'SUBMITTED'}" style="display: inline;">
+          <form th:action="@{'/admin/' + ${a.id} + '/intake/accept'}" method="post" style="display: inline;">
+            <button class="btn btn-primary btn-sm" type="submit" style="font-size: 0.8em; padding: 6px 10px;">
+              ⚡ Tiếp nhận
+            </button>
+          </form>
+        </div>
 
-        <!-- 3) Từ chối (lý do) -->
-        <form th:action="@{'/admin/' + ${a.id} + '/reject'}" method="post" style="display:inline;margin-left:6px">
-          <input class="input" name="reason" placeholder="Lý do từ chối"
-                 th:disabled="${a.status.name()=='DISBURSED'}" required/>
-          <input type="hidden" name="redirectTo" th:value="@{'/admin/' + ${section}}"/>
-          <button class="btn btn-danger" th:disabled="${a.status.name()=='DISBURSED'}">Từ chối</button>
-        </form>
+        <div th:if="${section == 'assessment' and a.status.name() == 'ASSESSED'}" style="display: inline;">
+          <a class="btn btn-success btn-sm"
+             th:href="@{'/admin/assessment/app/' + ${a.id}}"
+             style="font-size: 0.8em; padding: 6px 10px;">
+            ⚡ Quyết định
+          </a>
+        </div>
+
+        <div th:if="${section == 'disbursement' and a.status.name() == 'APPROVED'}" style="display: inline;">
+          <form th:action="@{'/admin/' + ${a.id} + '/disburse'}" method="post" style="display: inline;">
+            <button class="btn btn-warning btn-sm" type="submit" style="font-size: 0.8em; padding: 6px 10px;">
+              ⚡ Giải ngân
+            </button>
+          </form>
+        </div>
       </td>
     </tr>
     </tbody>
   </table>
+
+  <!-- Footer actions -->
+  <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #374151; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <a class="link" href="/admin/dashboard">🏠 Về Dashboard</a>
+      <span style="margin: 0 12px; opacity: 0.5;">•</span>
+      <span style="opacity: 0.7; font-size: 0.9em;">
+        <span th:if="${section == 'intake'}">Phòng Tiếp Nhận</span>
+        <span th:if="${section == 'assessment'}">Phòng Thẩm Định Tín Dụng</span>
+        <span th:if="${section == 'disbursement'}">Phòng Giải Ngân</span>
+      </span>
+    </div>
+
+    <!-- Quick navigation -->
+    <div style="display: flex; gap: 8px;">
+      <a th:if="${section != 'intake'}" class="btn btn-outline btn-sm" href="/admin/intake">📥 Tiếp nhận</a>
+      <a th:if="${section != 'assessment'}" class="btn btn-outline btn-sm" href="/admin/assessment">🔍 Thẩm định</a>
+      <a th:if="${section != 'disbursement'}" class="btn btn-outline btn-sm" href="/admin/disbursement">💰 Giải ngân</a>
+    </div>
+  </div>
 </div>
+
+<style>
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8em;
+}
+</style>
 </body>
 </html>
