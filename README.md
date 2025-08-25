@@ -232,12 +232,4 @@ run.ps1
 
 ---
 
-## 🎯 KẾT LUẬN
-
-Hệ thống được thiết kế theo **workflow thực tế của ngân hàng**, đảm bảo:
-- **Phân quyền rõ ràng** theo vai trò
-- **Quy trình chặt chẽ** không bỏ sót bước nào
-- **Trách nhiệm phân định** rõ ràng giữa các phòng ban
-- **Audit trail** đầy đủ với timestamp và log
-- **User experience** tốt với navigation tự động
-- **Error handling** toàn diện với thông báo chi tiết
+![img.png](img.png)

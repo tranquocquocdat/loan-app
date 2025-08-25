@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="def_1" targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <!-- Collaboration để kết nối 2 Pools -->
+  <collaboration id="LoanProcessCollaboration">
+    <participant id="Participant_Customer" name="KHÁCH HÀNG" processRef="CustomerProcess"/>
+    <participant id="Participant_Bank" name="NGÂN HÀNG" processRef="BankProcess"/>
+    
+    <!-- Message Flows giữa 2 Pools -->
+    <messageFlow id="MessageFlow_1" name="Nộp hồ sơ" 
+                 sourceRef="Task_SubmitApplication" targetRef="StartEvent_Bank"/>
+    <messageFlow id="MessageFlow_2" name="Thông báo kết quả" 
+                 sourceRef="Task_NotifyCustomer" targetRef="Task_ReceiveNotification"/>
+    <messageFlow id="MessageFlow_3" name="Yêu cầu bổ sung hồ sơ" 
+                 sourceRef="Task_RequestMoreDocs" targetRef="Task_ReceiveDocRequest"/>
+  </collaboration>
+  
+  <!-- Process cho Khách hàng -->
+  <process id="CustomerProcess" name="Khách hàng" isExecutable="true">
+    <startEvent id="StartEvent_Customer" name="Có nhu cầu vay">
+      <outgoing>Flow_Customer_1</outgoing>
+    </startEvent>
+
+    <userTask id="Task_SubmitApplication" name="Nộp hồ sơ vay">
+      <incoming>Flow_Customer_1</incoming>
+      <incoming>Flow_Customer_Resubmit</incoming>
+      <outgoing>Flow_Customer_2</outgoing>
+    </userTask>
+
+    <userTask id="Task_ReceiveDocRequest" name="Nhận yêu cầu bổ sung hồ sơ">
+      <incoming>Flow_Customer_3</incoming>
+      <outgoing>Flow_Customer_Resubmit</outgoing>
+    </userTask>
+
+    <userTask id="Task_ReceiveNotification" name="Nhận thông báo kết quả">
+      <incoming>Flow_Customer_2</incoming>
+      <outgoing>Flow_Customer_4</outgoing>
+      <outgoing>Flow_Customer_5</outgoing>
+    </userTask>
+
+    <endEvent id="EndEvent_Success" name="Nhận tiền vay">
+      <incoming>Flow_Customer_4</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_Rejected" name="Hồ sơ bị từ chối">
+      <incoming>Flow_Customer_5</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows cho Customer -->
+    <sequenceFlow id="Flow_Customer_1" sourceRef="StartEvent_Customer" targetRef="Task_SubmitApplication"/>
+    <sequenceFlow id="Flow_Customer_2" sourceRef="Task_SubmitApplication" targetRef="Task_ReceiveNotification"/>
+    <sequenceFlow id="Flow_Customer_3" sourceRef="Task_SubmitApplication" targetRef="Task_ReceiveDocRequest"/>
+    <sequenceFlow id="Flow_Customer_Resubmit" name="Bổ sung hồ sơ" sourceRef="Task_ReceiveDocRequest" targetRef="Task_SubmitApplication"/>
+    <sequenceFlow id="Flow_Customer_4" name="Được duyệt" sourceRef="Task_ReceiveNotification" targetRef="EndEvent_Success"/>
+    <sequenceFlow id="Flow_Customer_5" name="Bị từ chối" sourceRef="Task_ReceiveNotification" targetRef="EndEvent_Rejected"/>
+  </process>
+
+
+  <process id="BankProcess" name="Ngân hàng" isExecutable="true">
+    
+
+    <laneSet id="BankLaneSet">
+      <lane id="Lane_Reception" name="Phòng tiếp nhận">
+        <flowNodeRef>StartEvent_Bank</flowNodeRef>
+        <flowNodeRef>Task_ReceiveApplication</flowNodeRef>
+        <flowNodeRef>Gateway_DocCheck</flowNodeRef>
+        <flowNodeRef>Task_RequestMoreDocs</flowNodeRef>
+      </lane>
+      <lane id="Lane_CreditDept" name="Phòng tín dụng">
+        <flowNodeRef>Task_EvaluateCredit</flowNodeRef>
+        <flowNodeRef>Gateway_Decision</flowNodeRef>
+      </lane>
+      <lane id="Lane_Disbursement" name="Phòng giải ngân">
+        <flowNodeRef>Task_DisburseLoan</flowNodeRef>
+        <flowNodeRef>Task_NotifyCustomer</flowNodeRef>
+        <flowNodeRef>EndEvent_Bank</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_Bank" name="Nhận hồ sơ từ KH">
+      <outgoing>Flow_Bank_1</outgoing>
+    </startEvent>
+
+
+    <userTask id="Task_ReceiveApplication" name="Bước 1: Tiếp nhận và kiểm tra hồ sơ">
+      <incoming>Flow_Bank_1</incoming>
+      <outgoing>Flow_Bank_2</outgoing>
+    </userTask>
+
+
+    <exclusiveGateway id="Gateway_DocCheck" name="Hồ sơ đầy đủ?">
+      <incoming>Flow_Bank_2</incoming>
+      <outgoing>Flow_DocComplete</outgoing>
+      <outgoing>Flow_DocIncomplete</outgoing>
+      <outgoing>Flow_DocRejected</outgoing>
+    </exclusiveGateway>
+
+
+    <userTask id="Task_RequestMoreDocs" name="Yêu cầu bổ sung hồ sơ">
+      <incoming>Flow_DocIncomplete</incoming>
+      <incoming>Flow_CreditIncomplete</incoming>
+      <outgoing>Flow_WaitForDocs</outgoing>
+    </userTask>
+
+
+    <userTask id="Task_EvaluateCredit" name="Bước 2: Thẩm định tín dụng">
+      <incoming>Flow_DocComplete</incoming>
+      <outgoing>Flow_Bank_3</outgoing>
+    </userTask>
+
+
+    <exclusiveGateway id="Gateway_Decision" name="Bước 3: Kết quả thẩm định">
+      <incoming>Flow_Bank_3</incoming>
+      <outgoing>Flow_Approved</outgoing>
+      <outgoing>Flow_Rejected</outgoing>
+      <outgoing>Flow_NeedMoreInfo</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="Task_DisburseLoan" name="Bước 4: Giải ngân">
+      <incoming>Flow_Approved</incoming>
+      <outgoing>Flow_Bank_4</outgoing>
+    </userTask>
+
+
+    <userTask id="Task_NotifyCustomer" name="Thông báo kết quả">
+      <incoming>Flow_Bank_4</incoming>
+      <incoming>Flow_Rejected</incoming>
+      <incoming>Flow_DocRejected</incoming>
+      <outgoing>Flow_Bank_5</outgoing>
+    </userTask>
+
+    <endEvent id="EndEvent_Bank" name="Hoàn thành quy trình">
+      <incoming>Flow_Bank_5</incoming>
+      <incoming>Flow_WaitForDocs</incoming>
+    </endEvent>
+
+
+    <sequenceFlow id="Flow_Bank_1" sourceRef="StartEvent_Bank" targetRef="Task_ReceiveApplication"/>
+    <sequenceFlow id="Flow_Bank_2" sourceRef="Task_ReceiveApplication" targetRef="Gateway_DocCheck"/>
+    
+
+    <sequenceFlow id="Flow_DocComplete" name="Hồ sơ đầy đủ" sourceRef="Gateway_DocCheck" targetRef="Task_EvaluateCredit">
+      <conditionExpression xsi:type="tFormalExpression">${documentsComplete == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_DocIncomplete" name="Thiếu hồ sơ" sourceRef="Gateway_DocCheck" targetRef="Task_RequestMoreDocs">
+      <conditionExpression xsi:type="tFormalExpression">${documentsComplete == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_DocRejected" name="Từ chối ngay" sourceRef="Gateway_DocCheck" targetRef="Task_NotifyCustomer">
+      <conditionExpression xsi:type="tFormalExpression">${documentsRejected == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_WaitForDocs" name="Chờ khách hàng bổ sung" sourceRef="Task_RequestMoreDocs" targetRef="EndEvent_Bank"/>
+    
+    <sequenceFlow id="Flow_Bank_3" sourceRef="Task_EvaluateCredit" targetRef="Gateway_Decision"/>
+    
+
+    <sequenceFlow id="Flow_Approved" name="Phê duyệt" sourceRef="Gateway_Decision" targetRef="Task_DisburseLoan">
+      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_Rejected" name="Từ chối" sourceRef="Gateway_Decision" targetRef="Task_NotifyCustomer">
+      <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_NeedMoreInfo" name="Cần thêm thông tin" sourceRef="Gateway_Decision" targetRef="Task_RequestMoreDocs">
+      <conditionExpression xsi:type="tFormalExpression">${needMoreInfo == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="Flow_Bank_4" sourceRef="Task_DisburseLoan" targetRef="Task_NotifyCustomer"/>
+    <sequenceFlow id="Flow_Bank_5" sourceRef="Task_NotifyCustomer" targetRef="EndEvent_Bank"/>
+  </process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="LoanProcessCollaboration">
+      
+      <!-- Pool 1: Customer -->
+      <bpmndi:BPMNShape id="Participant_Customer_Shape" bpmnElement="Participant_Customer" isHorizontal="true">
+        <dc:Bounds x="50" y="50" width="1300" height="250"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Pool 2: Bank -->
+      <bpmndi:BPMNShape id="Participant_Bank_Shape" bpmnElement="Participant_Bank" isHorizontal="true">
+        <dc:Bounds x="50" y="350" width="1300" height="500"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Bank Lanes -->
+      <bpmndi:BPMNShape id="Lane_Reception_Shape" bpmnElement="Lane_Reception" isHorizontal="true">
+        <dc:Bounds x="80" y="350" width="1270" height="150"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Lane_CreditDept_Shape" bpmnElement="Lane_CreditDept" isHorizontal="true">
+        <dc:Bounds x="80" y="500" width="1270" height="150"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Lane_Disbursement_Shape" bpmnElement="Lane_Disbursement" isHorizontal="true">
+        <dc:Bounds x="80" y="650" width="1270" height="200"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Customer Process Elements -->
+      <bpmndi:BPMNShape id="StartEvent_Customer_Shape" bpmnElement="StartEvent_Customer">
+        <dc:Bounds x="130" y="150" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="110" y="193" width="76" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SubmitApp_Shape" bpmnElement="Task_SubmitApplication">
+        <dc:Bounds x="220" y="128" width="100" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReceiveDocRequest_Shape" bpmnElement="Task_ReceiveDocRequest">
+        <dc:Bounds x="380" y="220" width="100" height="60"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReceiveNotif_Shape" bpmnElement="Task_ReceiveNotification">
+        <dc:Bounds x="1000" y="128" width="100" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Success_Shape" bpmnElement="EndEvent_Success">
+        <dc:Bounds x="1170" y="128" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1150" y="171" width="76" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_Shape" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="1170" y="220" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1145" y="263" width="86" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Bank Process Elements -->
+      <bpmndi:BPMNShape id="StartEvent_Bank_Shape" bpmnElement="StartEvent_Bank">
+        <dc:Bounds x="130" y="405" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="105" y="448" width="86" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReceiveApp_Shape" bpmnElement="Task_ReceiveApplication">
+        <dc:Bounds x="220" y="383" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_DocCheck_Shape" bpmnElement="Gateway_DocCheck" isMarkerVisible="true">
+        <dc:Bounds x="380" y="398" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="365" y="368" width="80" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RequestMoreDocs_Shape" bpmnElement="Task_RequestMoreDocs">
+        <dc:Bounds x="480" y="383" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Evaluate_Shape" bpmnElement="Task_EvaluateCredit">
+        <dc:Bounds x="480" y="533" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Shape" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="650" y="548" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="635" y="605" width="80" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Disburse_Shape" bpmnElement="Task_DisburseLoan">
+        <dc:Bounds x="850" y="703" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Notify_Shape" bpmnElement="Task_NotifyCustomer">
+        <dc:Bounds x="1000" y="703" width="100" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Bank_Shape" bpmnElement="EndEvent_Bank">
+        <dc:Bounds x="1170" y="725" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1145" y="768" width="86" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Customer Process Flows -->
+      <bpmndi:BPMNEdge id="Flow_Customer_1_Edge" bpmnElement="Flow_Customer_1">
+        <di:waypoint x="166" y="168"/>
+        <di:waypoint x="220" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Customer_2_Edge" bpmnElement="Flow_Customer_2">
+        <di:waypoint x="320" y="168"/>
+        <di:waypoint x="1000" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Customer_3_Edge" bpmnElement="Flow_Customer_3">
+        <di:waypoint x="320" y="168"/>
+        <di:waypoint x="350" y="168"/>
+        <di:waypoint x="350" y="250"/>
+        <di:waypoint x="380" y="250"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Customer_Resubmit_Edge" bpmnElement="Flow_Customer_Resubmit">
+        <di:waypoint x="380" y="250"/>
+        <di:waypoint x="270" y="250"/>
+        <di:waypoint x="270" y="208"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="290" y="232" width="80" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Customer_4_Edge" bpmnElement="Flow_Customer_4">
+        <di:waypoint x="1100" y="146"/>
+        <di:waypoint x="1170" y="146"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1115" y="128" width="54" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Customer_5_Edge" bpmnElement="Flow_Customer_5">
+        <di:waypoint x="1100" y="188"/>
+        <di:waypoint x="1135" y="188"/>
+        <di:waypoint x="1135" y="238"/>
+        <di:waypoint x="1170" y="238"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1115" y="211" width="46" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Bank Process Flows -->
+      <bpmndi:BPMNEdge id="Flow_Bank_1_Edge" bpmnElement="Flow_Bank_1">
+        <di:waypoint x="166" y="423"/>
+        <di:waypoint x="220" y="423"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Bank_2_Edge" bpmnElement="Flow_Bank_2">
+        <di:waypoint x="340" y="423"/>
+        <di:waypoint x="380" y="423"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DocComplete_Edge" bpmnElement="Flow_DocComplete">
+        <di:waypoint x="405" y="448"/>
+        <di:waypoint x="405" y="573"/>
+        <di:waypoint x="480" y="573"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="340" y="508" width="80" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DocIncomplete_Edge" bpmnElement="Flow_DocIncomplete">
+        <di:waypoint x="430" y="423"/>
+        <di:waypoint x="480" y="423"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="435" y="405" width="60" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DocRejected_Edge" bpmnElement="Flow_DocRejected">
+        <di:waypoint x="405" y="398"/>
+        <di:waypoint x="405" y="343"/>
+        <di:waypoint x="1050" y="343"/>
+        <di:waypoint x="1050" y="703"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="708" y="325" width="64" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_WaitForDocs_Edge" bpmnElement="Flow_WaitForDocs">
+        <di:waypoint x="600" y="423"/>
+        <di:waypoint x="1188" y="423"/>
+        <di:waypoint x="1188" y="725"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="860" y="405" width="88" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Bank_3_Edge" bpmnElement="Flow_Bank_3">
+        <di:waypoint x="600" y="573"/>
+        <di:waypoint x="650" y="573"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_Edge" bpmnElement="Flow_Approved">
+        <di:waypoint x="675" y="598"/>
+        <di:waypoint x="675" y="743"/>
+        <di:waypoint x="850" y="743"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="685" y="668" width="48" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rejected_Edge" bpmnElement="Flow_Rejected">
+        <di:waypoint x="700" y="573"/>
+        <di:waypoint x="850" y="573"/>
+        <di:waypoint x="850" y="743"/>
+        <di:waypoint x="1000" y="743"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="815" y="555" width="36" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NeedMoreInfo_Edge" bpmnElement="Flow_NeedMoreInfo">
+        <di:waypoint x="675" y="548"/>
+        <di:waypoint x="675" y="423"/>
+        <di:waypoint x="600" y="423"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="625" y="483" width="88" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Bank_4_Edge" bpmnElement="Flow_Bank_4">
+        <di:waypoint x="970" y="743"/>
+        <di:waypoint x="1000" y="743"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Bank_5_Edge" bpmnElement="Flow_Bank_5">
+        <di:waypoint x="1100" y="743"/>
+        <di:waypoint x="1170" y="743"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="MessageFlow_1_Edge" bpmnElement="MessageFlow_1">
+        <di:waypoint x="270" y="208"/>
+        <di:waypoint x="270" y="306"/>
+        <di:waypoint x="148" y="306"/>
+        <di:waypoint x="148" y="405"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="185" y="288" width="50" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_2_Edge" bpmnElement="MessageFlow_2">
+        <di:waypoint x="1050" y="703"/>
+        <di:waypoint x="1050" y="208"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1060" y="448" width="88" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_3_Edge" bpmnElement="MessageFlow_3">
+        <di:waypoint x="540" y="383"/>
+        <di:waypoint x="540" y="306"/>
+        <di:waypoint x="430" y="306"/>
+        <di:waypoint x="430" y="280"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="445" y="288" width="88" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
